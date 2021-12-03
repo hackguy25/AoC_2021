@@ -91,7 +91,66 @@ fn day_02() {
     println!("({}, {})", first, depth * horiz);
 }
 
+fn day_03() {
+    // read data
+    let data = fs::read_to_string("inputs/day_03.in").expect("aaa");
+
+    // count appearances
+    let mut counts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for line in data.lines() {
+        let mut chars = line.chars();
+        for i in 0..12 {
+            counts[i] += if chars.next() == Some('1') { 1 } else { -1 };
+        }
+    }
+
+    // calculate epsilon and gamma
+    let (mut epsilon, mut gamma) = (0, 0);
+    for i in 0..12 {
+        gamma *= 2;
+        epsilon *= 2;
+        if counts[i] >= 0 { gamma += 1; } else { epsilon += 1; }
+    }
+
+    // determine oxygen generator rating
+    let mut values = data.lines().collect::<Vec<_>>();
+    for i in 0..12 {
+        let mut count = 0;
+        for value in &values {
+            if value.chars().nth(i) == Some('1') { count += 1; } else { count -= 1; }
+        }
+        values = if count >= 0 {
+            values.into_iter().filter(|s| s.chars().nth(i) == Some('1')).collect()
+        } else {
+            values.into_iter().filter(|s| s.chars().nth(i) == Some('0')).collect()
+        };
+    }
+    let oxygen = i32::from_str_radix(values[0], 2).unwrap();
+
+    // determine CO2 scrubber rating
+    let mut values = data.lines().collect::<Vec<_>>();
+    for i in 0..12 {
+        let mut count = 0;
+        for value in &values {
+            if value.chars().nth(i) == Some('1') { count += 1; } else { count -= 1; }
+        }
+        values = if count < 0 {
+            values.into_iter().filter(|s| s.chars().nth(i) == Some('1')).collect()
+        } else {
+            values.into_iter().filter(|s| s.chars().nth(i) == Some('0')).collect()
+        };
+        if values.len() == 1 {
+            break;
+        }
+    }
+    let co2 = i32::from_str_radix(values[0], 2).unwrap();
+
+    // print result
+    println!("({}, {})", gamma * epsilon, oxygen * co2);
+}
+
 fn main() {
     // day_01();
-    day_02();
+    // day_02();
+    day_03();
 }
