@@ -88,7 +88,7 @@ fn day_02() {
     }
 
     // print result
-    println!("({}, {})", first, depth * horiz);
+    println!("{}, {}", first, depth * horiz);
 }
 
 fn day_03() {
@@ -146,7 +146,7 @@ fn day_03() {
     let co2 = i32::from_str_radix(values[0], 2).unwrap();
 
     // print result
-    println!("({}, {})", gamma * epsilon, oxygen * co2);
+    println!("{}, {}", gamma * epsilon, oxygen * co2);
 }
 
 fn main() {
