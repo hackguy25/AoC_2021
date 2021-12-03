@@ -109,7 +109,11 @@ fn day_03() {
     for i in 0..12 {
         gamma *= 2;
         epsilon *= 2;
-        if counts[i] >= 0 { gamma += 1; } else { epsilon += 1; }
+        if counts[i] >= 0 {
+            gamma += 1;
+        } else {
+            epsilon += 1;
+        }
     }
 
     // determine oxygen generator rating
@@ -117,12 +121,22 @@ fn day_03() {
     for i in 0..12 {
         let mut count = 0;
         for value in &values {
-            if value.chars().nth(i) == Some('1') { count += 1; } else { count -= 1; }
+            if value.chars().nth(i) == Some('1') {
+                count += 1;
+            } else {
+                count -= 1;
+            }
         }
         values = if count >= 0 {
-            values.into_iter().filter(|s| s.chars().nth(i) == Some('1')).collect()
+            values
+                .into_iter()
+                .filter(|s| s.chars().nth(i) == Some('1'))
+                .collect()
         } else {
-            values.into_iter().filter(|s| s.chars().nth(i) == Some('0')).collect()
+            values
+                .into_iter()
+                .filter(|s| s.chars().nth(i) == Some('0'))
+                .collect()
         };
     }
     let oxygen = i32::from_str_radix(values[0], 2).unwrap();
@@ -132,12 +146,22 @@ fn day_03() {
     for i in 0..12 {
         let mut count = 0;
         for value in &values {
-            if value.chars().nth(i) == Some('1') { count += 1; } else { count -= 1; }
+            if value.chars().nth(i) == Some('1') {
+                count += 1;
+            } else {
+                count -= 1;
+            }
         }
         values = if count < 0 {
-            values.into_iter().filter(|s| s.chars().nth(i) == Some('1')).collect()
+            values
+                .into_iter()
+                .filter(|s| s.chars().nth(i) == Some('1'))
+                .collect()
         } else {
-            values.into_iter().filter(|s| s.chars().nth(i) == Some('0')).collect()
+            values
+                .into_iter()
+                .filter(|s| s.chars().nth(i) == Some('0'))
+                .collect()
         };
         if values.len() == 1 {
             break;
