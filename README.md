@@ -25,5 +25,9 @@ Since I might get new insights or ideas for an old solution later down the road,
 ### Day 3
 - `if` statement as ternary operator:
   `counts[i] += if chars.next() == Some('1') { 1 } else { -1 }`
-- parse numbers with different bases: `i32::from_str_radix("1011101", 2).unwrap()`
+- Parse numbers with different bases: `i32::from_str_radix("1011101", 2).unwrap()`
 
+### Day 4
+- Ranges can be used as iterators: `(0..5).map(|x| 2 * x - 1).collect::<Vec<_>>()`
+- Blocks can be given labels and broken out of (see `day_04`)
+- Variables can be declared without type and value if they're not going to be read before first assignment: `let a; a = 3 * something;`

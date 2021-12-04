@@ -173,8 +173,170 @@ fn day_03() {
     println!("{}, {}", gamma * epsilon, oxygen * co2);
 }
 
+fn day_04() {
+    // read data
+    let data = fs::read_to_string("inputs/day_04.in").expect("aaa");
+
+    // parse inputs
+    let mut blocks = data.split("\n\n");
+    let drawn_nums = blocks
+        .next()
+        .unwrap()
+        .split(",")
+        .filter_map(|x| x.parse::<i32>().ok())
+        .collect::<Vec<_>>();
+    let mut boards = blocks
+        .map(|board| {
+            board
+                .split("\n")
+                .filter(|line| line.len() > 9)
+                .map(|line| line.split(" "))
+                .map(|line| {
+                    line.filter_map(|num| num.parse::<i32>().ok())
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>()
+        })
+        .map(|board| Some(board))
+        .collect::<Vec<_>>();
+
+    // transpose boards for easier column detection
+    let mut boards_transposed = (&boards)
+        .into_iter()
+        .map(|board| {
+            Some(
+                (0..5)
+                    .map(|i| {
+                        board
+                            .as_ref()
+                            .unwrap()
+                            .into_iter()
+                            .map(|line| line[i])
+                            .collect::<Vec<_>>()
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    // play the drawn numbers
+    let (mut winning, mut last_drawn) = (0, 0);
+    let mut nums = drawn_nums.into_iter();
+    loop {
+        let num = nums.next().unwrap();
+        let mut break_out = false;
+        for (b_num, board) in (&mut boards).into_iter().enumerate() {
+            for line in board.as_mut().unwrap() {
+                line.retain(|x| *x != num);
+                if line.is_empty() {
+                    winning = b_num;
+                    last_drawn = num;
+                    break_out = true;
+                }
+            }
+        }
+        for (b_num, board) in (&mut boards_transposed).into_iter().enumerate() {
+            for line in board.as_mut().unwrap() {
+                line.retain(|x| *x != num);
+                if line.is_empty() {
+                    winning = b_num;
+                    last_drawn = num;
+                    break_out = true;
+                }
+            }
+        }
+        if break_out {
+            break;
+        }
+    }
+
+    // calculate the score
+    let winning_board = &(boards[winning]);
+    let winning_sum: i32 = winning_board
+        .as_ref()
+        .unwrap()
+        .into_iter()
+        .map(|line| line.into_iter().sum::<i32>())
+        .sum();
+    let last_drawn_winning = last_drawn;
+
+    // play out the rest of the boards
+    boards[winning] = None;
+    boards_transposed[winning] = None;
+    let (losing, last_drawn);
+    'outer2: loop {
+        let num = nums.next().unwrap();
+        let mut to_delete = vec![];
+        for (b_num, board) in (&mut boards).into_iter().enumerate() {
+            match board.as_mut() {
+                None => {
+                    continue;
+                }
+                Some(lines) => {
+                    for line in lines {
+                        line.retain(|x| *x != num);
+                        if line.is_empty() {
+                            to_delete.push((true, b_num));
+                        }
+                    }
+                }
+            }
+        }
+        for (b_num, board) in (&mut boards_transposed).into_iter().enumerate() {
+            match board.as_mut() {
+                None => {
+                    continue;
+                }
+                Some(lines) => {
+                    for line in lines {
+                        line.retain(|x| *x != num);
+                        if line.is_empty() {
+                            to_delete.push((false, b_num));
+                        }
+                    }
+                }
+            }
+        }
+        for (s, i) in to_delete {
+            if s && (&boards).into_iter().filter(|x| **x != None).count() < 2 {
+                losing = i;
+                last_drawn = num;
+                break 'outer2;
+            } else if !s
+                && (&boards_transposed)
+                    .into_iter()
+                    .filter(|x| **x != None)
+                    .count()
+                    < 2
+            {
+                losing = i;
+                last_drawn = num;
+                break 'outer2;
+            } else {
+                boards[i] = None;
+                boards_transposed[i] = None;
+            }
+        }
+    }
+
+    // calculate the score and print result
+    let losing_board = &(boards[losing]);
+    let losing_sum: i32 = losing_board
+        .as_ref()
+        .unwrap()
+        .into_iter()
+        .map(|line| line.into_iter().sum::<i32>())
+        .sum();
+    println!(
+        "{}, {}",
+        winning_sum * last_drawn_winning,
+        losing_sum * last_drawn
+    );
+}
+
 fn main() {
     // day_01();
     // day_02();
-    day_03();
+    // day_03();
+    day_04();
 }
