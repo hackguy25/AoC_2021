@@ -31,3 +31,8 @@ Since I might get new insights or ideas for an old solution later down the road,
 - Ranges can be used as iterators: `(0..5).map(|x| 2 * x - 1).collect::<Vec<_>>()`
 - Blocks can be given labels and broken out of (see `day_04`)
 - Variables can be declared without type and value if they're not going to be read before first assignment: `let a; a = 3 * something;`
+
+### Day 5
+- Large `Vec` initialization using a macro: `vec![vec![0, 1000]; 1000]`
+- Argument destructuring in closures: `(&lines).into_iter().filter(|(a,b,c,d)| a == c || b == d)`
+- Negative numbers can't easily be added to `usize`: `if dx * dy > 0 { y += 1; } else { y -= 1; }`

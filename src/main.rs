@@ -334,9 +334,91 @@ fn day_04() {
     );
 }
 
+fn day_05() {
+    // read and parse data
+    let data = fs::read_to_string("inputs/day_05.in").expect("aaa");
+    let lines = data
+        .lines()
+        .map(|line| {
+            let mut data = line.split(" -> ").map(|n| n.split(","));
+            let mut first = data.next().unwrap();
+            let mut second = data.next().unwrap();
+            (
+                first.next().unwrap().parse::<usize>().unwrap(),
+                first.next().unwrap().parse::<usize>().unwrap(),
+                second.next().unwrap().parse::<usize>().unwrap(),
+                second.next().unwrap().parse::<usize>().unwrap(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    // consider only vertical and horizontal lines
+    let general = (&lines).into_iter().filter(|(a, b, c, d)| a == c || b == d);
+
+    // plot general lines on a field
+    let mut field = vec![vec![0; 1000]; 1000];
+    for (a, b, c, d) in general {
+        if a == c {
+            let (bot, top) = if b < d { (b, d) } else { (d, b) };
+            for i in *bot..(top + 1) {
+                field[*a][i] += 1;
+            }
+        } else {
+            let (bot, top) = if a < c { (a, c) } else { (c, a) };
+            for i in *bot..(top + 1) {
+                field[i][*b] += 1;
+            }
+        }
+    }
+
+    // count number of cells with at least two lines going through them
+    let general_overlap = field
+        .into_iter()
+        .map(|line| line.into_iter().filter(|x| *x >= 2).count())
+        .sum::<usize>();
+
+    // plot all lines on a field
+    let mut field = vec![vec![0; 1000]; 1000];
+    for (a, b, c, d) in (&lines).into_iter() {
+        if a == c {
+            let (bot, top) = if b < d { (b, d) } else { (d, b) };
+            for i in *bot..(top + 1) {
+                field[*a][i] += 1;
+            }
+        } else if b == d {
+            let (bot, top) = if a < c { (a, c) } else { (c, a) };
+            for i in *bot..(top + 1) {
+                field[i][*b] += 1;
+            }
+        } else {
+            let (dx, dy) = (2 * (c > a) as i32 - 1, 2 * (d > b) as i32 - 1);
+            let (bot, top) = if a < c { (a, c) } else { (c, a) };
+            let mut y = if a < c { *b } else { *d };
+            for i in *bot..(top + 1) {
+                field[i][y] += 1;
+                if dx * dy > 0 {
+                    y += 1;
+                } else {
+                    y -= 1;
+                }
+            }
+        }
+    }
+
+    // count number of cells with at least two lines going through them
+    let full_overlap = field
+        .into_iter()
+        .map(|line| line.into_iter().filter(|x| *x >= 2).count())
+        .sum::<usize>();
+
+    // print the result
+    println!("{}, {}", general_overlap, full_overlap);
+}
+
 fn main() {
     // day_01();
     // day_02();
     // day_03();
-    day_04();
+    // day_04();
+    day_05();
 }
