@@ -335,7 +335,7 @@ fn day_04() {
 }
 
 fn day_05() {
-    // read and parse data
+    // read the data
     let data = fs::read_to_string("inputs/day_05.in").expect("aaa");
     let lines = data
         .lines()
@@ -415,10 +415,34 @@ fn day_05() {
     println!("{}, {}", general_overlap, full_overlap);
 }
 
+fn day_06() {
+    // read and parse data
+    let data = fs::read_to_string("inputs/day_06.in").expect("aaa");
+    let state = data.lines().next().unwrap().split(",");
+    let state = state.map(|x| x.parse::<i32>().unwrap()).collect::<Vec<_>>();
+    let mut state = (0..9).map(|n| state.iter().filter(|x| **x == n).count()).collect::<Vec<_>>();
+    println!("{:?}", state);
+
+    // simulate 256 days
+    let mut after80 = 0;
+    for iter in 0..256 {
+        state[7] += state[0];
+        let breeders = state.remove(0);
+        state.push(breeders);
+        if iter == 79 {
+            after80 = state.iter().sum();
+        }
+    }
+
+    // print the result
+    println!("{}, {}", after80, state.iter().sum::<usize>());
+}
+
 fn main() {
     // day_01();
     // day_02();
     // day_03();
     // day_04();
-    day_05();
+    // day_05();
+    day_06();
 }

@@ -36,3 +36,6 @@ Since I might get new insights or ideas for an old solution later down the road,
 - Large `Vec` initialization using a macro: `vec![vec![0, 1000]; 1000]`
 - Argument destructuring in closures: `(&lines).into_iter().filter(|(a,b,c,d)| a == c || b == d)`
 - Negative numbers can't easily be added to `usize`: `if dx * dy > 0 { y += 1; } else { y -= 1; }`
+
+### Day 6
+- Difference between `into_iter`, `iter` and `iter_mut`
