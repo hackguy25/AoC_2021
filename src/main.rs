@@ -420,8 +420,9 @@ fn day_06() {
     let data = fs::read_to_string("inputs/day_06.in").expect("aaa");
     let state = data.lines().next().unwrap().split(",");
     let state = state.map(|x| x.parse::<i32>().unwrap()).collect::<Vec<_>>();
-    let mut state = (0..9).map(|n| state.iter().filter(|x| **x == n).count()).collect::<Vec<_>>();
-    println!("{:?}", state);
+    let mut state = (0..9)
+        .map(|n| state.iter().filter(|x| **x == n).count())
+        .collect::<Vec<_>>();
 
     // simulate 256 days
     let mut after80 = 0;
@@ -438,11 +439,51 @@ fn day_06() {
     println!("{}, {}", after80, state.iter().sum::<usize>());
 }
 
+fn day_07() {
+    // read and parse data
+    let data = fs::read_to_string("inputs/day_07.in").expect("aaa");
+    let state = data
+        .trim()
+        .split(",")
+        .map(|x| x.parse::<i32>().unwrap())
+        .collect::<Vec<_>>();
+
+    // find min, max position
+    let (min, max) = (
+        *state.iter().min().unwrap(),
+        state.iter().max().unwrap() + 1,
+    );
+
+    // determine naive cost for each position
+    let mut costs = vec![];
+    for i in min..max {
+        costs.push(state.iter().map(|x| (x - i).abs()).sum::<i32>());
+    }
+    let smallest_naive = costs.iter().min().unwrap();
+
+    // determine proper cost for each position
+    let mut costs = vec![];
+    for i in min..max {
+        costs.push(
+            state
+                .iter()
+                .map(|x| (x - i).abs())
+                .map(|x| x * (x + 1) / 2)
+                .sum::<i32>(),
+        );
+    }
+    let smallest_proper = costs.iter().min().unwrap();
+
+    // print the result
+    println!("{}, {}", smallest_naive, smallest_proper);
+}
+
 fn main() {
     // day_01();
     // day_02();
     // day_03();
     // day_04();
     // day_05();
-    day_06();
+    // day_06();
+    day_07();
 }

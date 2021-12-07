@@ -39,3 +39,10 @@ Since I might get new insights or ideas for an old solution later down the road,
 
 ### Day 6
 - Difference between `into_iter`, `iter` and `iter_mut`
+
+### Day 7
+- Remove whitespace around String: `trim`
+- Custom max function on an iterator: `max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())`
+- Iterate over elements in nested iterators: `flat_map`
+- Shorten `map` and `filter map`: `it.map(f: x -> Result<y, _>).filter_map(Result::ok)` → `it.flat_map(f)`
+  - `Result` is an iterator that yields one value if `Ok(x)` and no values if `Err(e)`
