@@ -46,3 +46,10 @@ Since I might get new insights or ideas for an old solution later down the road,
 - Iterate over elements in nested iterators: `flat_map`
 - Shorten `map` and `filter map`: `it.map(f: x -> Result<y, _>).filter_map(Result::ok)` → `it.flat_map(f)`
   - `Result` is an iterator that yields one value if `Ok(x)` and no values if `Err(e)`
+
+### Day 8
+- Set operations using `HashSet`: `intersection`, equality
+- `sort` vs. `sort_unstable`
+- `iter.position(x)`
+- `vec.swap(i, j)`
+- `iter1.zip(iter2)`

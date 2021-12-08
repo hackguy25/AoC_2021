@@ -1,6 +1,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
+use std::collections::HashSet;
 use std::fs;
 
 fn day_01() {
@@ -478,6 +479,97 @@ fn day_07() {
     println!("{}, {}", smallest_naive, smallest_proper);
 }
 
+fn day_08() {
+    // read data
+    let data = fs::read_to_string("inputs/day_08.in").expect("aaa");
+
+    // count digits with unique signal counts
+    let unique = data
+        .lines()
+        .flat_map(|x| x.split(" | ").nth(1).unwrap().split(" "))
+        .map(|x| x.chars().count())
+        .filter(|&x| x == 2 || x == 3 || x == 4 || x == 7)
+        .count();
+
+    // calculate sum of displayed numbers
+    let mut acc = 0;
+    for line in data.lines() {
+        let mut line_it = line.split(" | ");
+
+        // parse reference digits as sets of signal lines
+        let mut refs = line_it
+            .next()
+            .unwrap()
+            .split(" ")
+            .map(|x| x.chars().collect::<HashSet<_>>())
+            .collect::<Vec<_>>();
+
+        // by sorting by length we get [1,7,4,x,x,x,y,y,y,8] where
+        // x are 2, 3 and 5, and y are 0, 6 and 9, but mixed up
+        refs.sort_unstable_by(|a, b| a.len().cmp(&b.len()));
+        assert_eq!(refs.len(), 10);
+
+        // sort out 2, 3 and 5
+        match (
+            refs[2].intersection(&refs[3]).count(),
+            refs[2].intersection(&refs[4]).count(),
+        ) {
+            (3, 2) => {
+                refs.swap(3, 4);
+            }
+            (3, 3) => {
+                refs.swap(3, 5);
+            }
+            _ => (),
+        };
+        if refs[0].intersection(&refs[4]).count() == 1 {
+            refs.swap(4, 5);
+        }
+
+        // sort out 0, 6 and 9
+        match (
+            refs[2].intersection(&refs[6]).count(),
+            refs[2].intersection(&refs[7]).count(),
+        ) {
+            (4, 3) => {
+                refs.swap(6, 8);
+            }
+            (3, 4) => {
+                refs.swap(7, 8);
+            }
+            _ => (),
+        };
+        if refs[0].intersection(&refs[6]).count() == 1 {
+            refs.swap(6, 7);
+        }
+
+        // now we have [1,7,4,2,3,5,0,6,9,8]
+        let dig_list: [i32; 10] = [1, 7, 4, 2, 3, 5, 0, 6, 9, 8];
+
+        // parse displayed digits
+        let disp = line_it
+            .next()
+            .unwrap()
+            .split(" ")
+            .map(|x| x.chars().collect::<HashSet<_>>())
+            .collect::<Vec<_>>();
+
+        // calculate displayed value
+        let mut num = 0;
+        for digit in disp.iter() {
+            num *= 10;
+            let pos = refs.iter().position(|x| *x == *digit).unwrap();
+            num += dig_list[pos];
+        }
+
+        // add displayed value to accumulator
+        acc += num;
+    }
+
+    // print the result
+    println!("{}, {}", unique, acc);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -485,5 +577,6 @@ fn main() {
     // day_04();
     // day_05();
     // day_06();
-    day_07();
+    // day_07();
+    day_08();
 }
