@@ -53,3 +53,8 @@ Since I might get new insights or ideas for an old solution later down the road,
 - `iter.position(x)`
 - `vec.swap(i, j)`
 - `iter1.zip(iter2)`
+
+### Day 9
+- Parse `char` into its digit value: `c.to_digit(basis).unwrap()`
+- Closures cannot be called recursively
+- Only consider first `k` elements of an iterator: `iter.take(k)`

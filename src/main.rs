@@ -3,6 +3,7 @@
 
 use std::collections::HashSet;
 use std::fs;
+use std::vec::Vec;
 
 fn day_01() {
     // read and parse data
@@ -570,6 +571,66 @@ fn day_08() {
     println!("{}, {}", unique, acc);
 }
 
+fn day_09() {
+    // read and parse data
+    let data = fs::read_to_string("inputs/day_09.in").expect("aaa");
+    let mut data = data
+        .lines()
+        .map(|l| l.chars().filter_map(|c| c.to_digit(10)).collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    // find risk points
+    let mut risk_points = vec![];
+    for i in 0..data.len() {
+        for j in 0..data[i].len() {
+            if (i == 0 || data[i - 1][j] > data[i][j])
+                && (i == data.len() - 1 || data[i + 1][j] > data[i][j])
+                && (j == 0 || data[i][j - 1] > data[i][j])
+                && (j == data[i].len() - 1 || data[i][j + 1] > data[i][j])
+            {
+                risk_points.push((i, j));
+            }
+        }
+    }
+
+    // sum risk levels
+    let risk_sum = risk_points
+        .iter()
+        .map(|(i, j)| data[*i][*j] + 1)
+        .sum::<u32>();
+
+    // find basin sizes
+    let mut basin_sizes = vec![];
+    fn recurse(data: &mut Vec<Vec<u32>>, i: i32, j: i32) -> u32 {
+        if i < 0
+            || i >= data.len() as i32
+            || j < 0
+            || j >= data[i as usize].len() as i32
+            || data[i as usize][j as usize] == 9
+        {
+            0
+        } else {
+            data[i as usize][j as usize] = 9;
+            recurse(data, i - 1, j)
+                + recurse(data, i + 1, j)
+                + recurse(data, i, j - 1)
+                + recurse(data, i, j + 1)
+                + 1
+        }
+    }
+    for (i, j) in &risk_points {
+        basin_sizes.push(recurse(&mut data, *i as i32, *j as i32));
+    }
+    println!("{:?}", basin_sizes);
+
+    // find and sum three largest basin sizes
+    basin_sizes.sort_unstable_by(|a, b| b.cmp(a));
+    let basin_sizes = basin_sizes.iter().take(3).product::<u32>();
+
+    // print the result
+    println!("{}, {}", risk_sum, basin_sizes);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -578,5 +639,6 @@ fn main() {
     // day_05();
     // day_06();
     // day_07();
-    day_08();
+    // day_08();
+    day_09();
 }
