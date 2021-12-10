@@ -58,3 +58,7 @@ Since I might get new insights or ideas for an old solution later down the road,
 - Parse `char` into its digit value: `c.to_digit(basis).unwrap()`
 - Closures cannot be called recursively
 - Only consider first `k` elements of an iterator: `iter.take(k)`
+
+### Day 10
+- Extend existing `vec` with and iterator: `v.extend(iter)`
+- Labels let you break out of nested loops: `'outer: for i in ... { ... break 'outer; ... }`

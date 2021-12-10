@@ -1,7 +1,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::vec::Vec;
 
@@ -621,7 +621,6 @@ fn day_09() {
     for (i, j) in &risk_points {
         basin_sizes.push(recurse(&mut data, *i as i32, *j as i32));
     }
-    println!("{:?}", basin_sizes);
 
     // find and sum three largest basin sizes
     basin_sizes.sort_unstable_by(|a, b| b.cmp(a));
@@ -629,6 +628,68 @@ fn day_09() {
 
     // print the result
     println!("{}, {}", risk_sum, basin_sizes);
+}
+
+fn day_10() {
+    // read data
+    let data = fs::read_to_string("inputs/day_10.in").expect("aaa");
+
+    // find corrupted lines
+    let mut syntax_score = 0;
+    let mut incomplete_lines = vec![];
+    let opening = HashSet::from(['(', '[', '{', '<']);
+    let closing = HashSet::from([')', ']', '}', '>']);
+    let prices = HashMap::from([(')', 3), (']', 57), ('}', 1197), ('>', 25137)]);
+    let matching = HashMap::from([(')', '('), (']', '['), ('}', '{'), ('>', '<')]);
+    'outer: for l in data.lines() {
+        let chars = l.chars();
+        let mut open = vec![];
+        for c in chars {
+            if opening.contains(&c) {
+                open.push(c);
+            } else if closing.contains(&c) {
+                match open.pop() {
+                    Some(d) => {
+                        if d != matching[&c] {
+                            syntax_score += prices[&c];
+                            continue 'outer;
+                        }
+                    }
+                    None => {
+                        syntax_score += prices[&c];
+                        continue 'outer;
+                    }
+                }
+            }
+        }
+        incomplete_lines.push(open);
+    }
+
+    // fix incomplete lines
+    let mut scores = vec![];
+    let prices = HashMap::from([('(', 1), ('[', 2), ('{', 3), ('<', 4)]);
+    for mut l in incomplete_lines {
+        let mut line_score = 0_u64;
+        loop {
+            match l.pop() {
+                Some(c) => {
+                    line_score *= 5;
+                    line_score += prices[&c];
+                }
+                None => {
+                    break;
+                }
+            }
+        }
+        scores.push(line_score);
+    }
+
+    // find the middle score
+    scores.sort();
+    let autocomplete_score = scores[scores.len() / 2];
+
+    // print the result
+    println!("{}, {}", syntax_score, autocomplete_score);
 }
 
 fn main() {
@@ -640,5 +701,6 @@ fn main() {
     // day_06();
     // day_07();
     // day_08();
-    day_09();
+    // day_09();
+    day_10();
 }
