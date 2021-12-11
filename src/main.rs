@@ -692,6 +692,93 @@ fn day_10() {
     println!("{}, {}", syntax_score, autocomplete_score);
 }
 
+fn day_11() {
+    // read data
+    let data = fs::read_to_string("inputs/day_11.in").expect("aaa");
+
+    // prepare grid
+    let mut grid = vec![vec![0; 12]];
+    for l in data.lines() {
+        let mut line = vec![0];
+        line.extend(l.chars().filter_map(|c| c.to_digit(10)).map(|c| c as i32));
+        line.push(0);
+        grid.push(line)
+    }
+    grid.push(vec![0; 12]);
+
+    // prepare neighbor calculation
+    let neighbors = |i: usize, j: usize| {
+        [
+            (i - 1, j - 1),
+            (i - 1, j),
+            (i - 1, j + 1),
+            (i, j - 1),
+            (i, j + 1),
+            (i + 1, j - 1),
+            (i + 1, j),
+            (i + 1, j + 1),
+        ]
+    };
+
+    // simulate steps
+    let mut flashes = 0;
+    let mut flashes_100 = 0;
+    let mut sync_step = 0;
+    for i in 0..1000 {
+        // increment all energies by 1
+        for i in 1..11 {
+            for j in 1..11 {
+                grid[i][j] += 1;
+            }
+        }
+
+        // loop until all flashes are taken care of
+        loop {
+            let mut updates = 0;
+            for i in 1..11 {
+                for j in 1..11 {
+                    if grid[i][j] > 9 {
+                        for (k, l) in neighbors(i, j) {
+                            grid[k as usize][l as usize] += 1;
+                        }
+                        grid[i][j] = i32::MIN;
+                        updates += 1;
+                    }
+                }
+            }
+            if updates == 0 {
+                break;
+            };
+        }
+
+        // count flashes and reset counters
+        let mut curr_flashes = 0;
+        for i in 1..11 {
+            for j in 1..11 {
+                if grid[i][j] < 0 {
+                    grid[i][j] = 0;
+                    curr_flashes += 1;
+                }
+            }
+        }
+        flashes += curr_flashes;
+
+        // note number of flashes after 100 steps
+        if i == 99 {
+            flashes_100 = flashes;
+        }
+
+        // check if the octopi have synchronized
+        if curr_flashes == 100 {
+            sync_step = i + 1;
+            break;
+        }
+    }
+
+    // print the result
+    println!("{}, {}", flashes_100, sync_step);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -702,5 +789,6 @@ fn main() {
     // day_07();
     // day_08();
     // day_09();
-    day_10();
+    // day_10();
+    day_11();
 }
