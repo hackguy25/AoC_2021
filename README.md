@@ -62,3 +62,7 @@ Since I might get new insights or ideas for an old solution later down the road,
 ### Day 10
 - Extend existing `vec` with and iterator: `v.extend(iter)`
 - Labels let you break out of nested loops: `'outer: for i in ... { ... break 'outer; ... }`
+
+### Day 12
+- Anonymous values can be used in function calls that need a reference: `f(&mut HashMap::new())`
+- String slices can be converted into owned strings directly: `"foo".to_owned()`

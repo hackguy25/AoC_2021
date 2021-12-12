@@ -779,6 +779,95 @@ fn day_11() {
     println!("{}, {}", flashes_100, sync_step);
 }
 
+fn day_12() {
+    // read data
+    let data = fs::read_to_string("inputs/day_12.in").expect("aaa");
+
+    // parse possible paths
+    let mut paths: HashMap<String, HashSet<String>> = HashMap::new();
+    for line in data.lines() {
+        let mut line = line.split("-");
+        let a = line.next().unwrap().to_owned();
+        let b = line.next().unwrap().to_owned();
+        if let Some(s) = paths.get_mut(&a) {
+            s.insert(b.clone());
+        } else {
+            paths.insert(a.clone(), HashSet::from([b.clone()]));
+        }
+        if let Some(s) = paths.get_mut(&b) {
+            s.insert(a.clone());
+        } else {
+            paths.insert(b.clone(), HashSet::from([a.clone()]));
+        }
+    }
+    paths.get_mut(&String::from("end")).unwrap().clear();
+
+    // prepare the first recursive function
+    fn rec_1(
+        pos: &String,
+        path: &mut HashSet<String>,
+        paths: &HashMap<String, HashSet<String>>,
+    ) -> u64 {
+        let possible = paths.get(pos).unwrap();
+        if possible.len() == 0 {
+            (pos == "end") as u64
+        } else {
+            let mut total_paths = 0;
+            if pos.chars().next().unwrap().is_lowercase() {
+                path.insert(pos.clone());
+            }
+            for p in possible.iter() {
+                if !path.contains(p) {
+                    total_paths += rec_1(&p, path, paths);
+                }
+            }
+            path.remove(pos);
+            total_paths
+        }
+    }
+
+    // prepare the second recursive function
+    fn rec_2(
+        pos: &String,
+        path: &mut HashSet<String>,
+        paths: &HashMap<String, HashSet<String>>,
+        repeated: &mut Option<String>,
+    ) -> u64 {
+        let possible = paths.get(pos).unwrap();
+        if possible.len() == 0 {
+            (pos == "end") as u64
+        } else {
+            let mut total_paths = 0;
+            for p in possible.iter() {
+                if !path.contains(p) {
+                    if p.chars().next().unwrap().is_lowercase() {
+                        path.insert(p.clone());
+                    }
+                    total_paths += rec_2(&p, path, paths, repeated);
+                    path.remove(p);
+                } else if *repeated == None && p != "start" {
+                    *repeated = Some(pos.clone());
+                    total_paths += rec_2(&p, path, paths, repeated);
+                    *repeated = None;
+                }
+            }
+            total_paths
+        }
+    }
+
+    // count all paths
+    let all_paths = rec_1(&String::from("start"), &mut HashSet::new(), &paths);
+    let all_paths_repeated = rec_2(
+        &String::from("start"),
+        &mut HashSet::from(["start".to_owned()]),
+        &paths,
+        &mut None,
+    );
+
+    // print the result
+    println!("{}, {}", all_paths, all_paths_repeated);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -790,5 +879,6 @@ fn main() {
     // day_08();
     // day_09();
     // day_10();
-    day_11();
+    // day_11();
+    day_12();
 }
