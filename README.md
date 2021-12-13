@@ -66,3 +66,6 @@ Since I might get new insights or ideas for an old solution later down the road,
 ### Day 12
 - Anonymous values can be used in function calls that need a reference: `f(&mut HashMap::new())`
 - String slices can be converted into owned strings directly: `"foo".to_owned()`
+
+### Day 13
+- Closure parameters can't be easily given lifetimes

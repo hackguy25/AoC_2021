@@ -868,6 +868,87 @@ fn day_12() {
     println!("{}, {}", all_paths, all_paths_repeated);
 }
 
+fn day_13() {
+    // read and parse data
+    let data = fs::read_to_string("inputs/day_13.in").expect("aaa");
+    let (mut dots, mut lines, mut folds) = (HashSet::new(), data.lines(), vec![]);
+    loop {
+        match lines.next().unwrap() {
+            "" => {
+                break;
+            }
+            ll => {
+                let mut coords = ll.split(",");
+                dots.insert((
+                    coords.next().unwrap().parse::<i32>().unwrap(),
+                    coords.next().unwrap().parse::<i32>().unwrap(),
+                ));
+            }
+        }
+    }
+    for l in lines {
+        let mut parts = l.split("=");
+        folds.push((
+            parts.next().unwrap().chars().nth(11).unwrap(),
+            parts.next().unwrap().parse::<i32>().unwrap(),
+        ));
+    }
+
+    // prepare fold procedure
+    let make_fold = |dots: &HashSet<_>, fold: (char, i32)| {
+        let mut new_dots = HashSet::new();
+        if fold.0 == 'x' {
+            for (x, y) in dots {
+                new_dots.insert((i32::max(fold.1 - x, x - fold.1) - 1, *y));
+            }
+        } else {
+            for (x, y) in dots {
+                new_dots.insert((*x, i32::max(fold.1 - y, y - fold.1) - 1));
+            }
+        }
+        new_dots
+    };
+
+    // make and print the first fold
+    let mut folds_iter = folds.iter();
+    let mut new_dots = make_fold(&dots, *folds_iter.next().unwrap());
+    let after_first = new_dots.len();
+    println!("{}", after_first);
+
+    // finish folding
+    for fold in folds.iter() {
+        dots = new_dots;
+        new_dots = make_fold(&dots, *fold);
+    }
+
+    // assemble and print the result
+    let mut result = new_dots.into_iter().collect::<Vec<_>>();
+    result.sort_by(
+        |(ax, ay), (bx, by)| {
+            if ay == by {
+                ax.cmp(bx)
+            } else {
+                ay.cmp(by)
+            }
+        },
+    );
+    let (mut x, mut y) = (-1, 0);
+    for (a, b) in result {
+        if b > y {
+            y = b;
+            x = -1;
+            println!("");
+        };
+        while a > x + 1 {
+            print!(".");
+            x += 1;
+        }
+        print!("#");
+        x += 1;
+    }
+    println!("");
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -880,5 +961,6 @@ fn main() {
     // day_09();
     // day_10();
     // day_11();
-    day_12();
+    // day_12();
+    day_13();
 }
