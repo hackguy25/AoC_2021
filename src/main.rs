@@ -949,6 +949,103 @@ fn day_13() {
     println!("");
 }
 
+fn day_14() {
+    // read and parse data
+    let data = fs::read_to_string("inputs/day_14.in").expect("aaa");
+    let mut lines = data.lines();
+    let template = lines.next().unwrap();
+    lines.next();
+    let mut insertion_rules = HashMap::new();
+    for line in lines {
+        let mut parts = line.split(" -> ");
+        insertion_rules.insert(
+            parts.next().unwrap(),
+            parts.next().unwrap().chars().next().unwrap(),
+        );
+    }
+
+    // convert template into a collection of pairs
+    let mut pairs = HashMap::<String, usize>::new();
+    let mut template_chars = template.chars();
+    let mut prev_char = template_chars.next().unwrap();
+    for next_char in template_chars {
+        if let Some(count) = pairs.get_mut(&String::from_iter([prev_char, next_char])) {
+            *count += 1;
+        } else {
+            pairs.insert(String::from_iter([prev_char, next_char]), 1);
+        }
+        prev_char = next_char;
+    }
+
+    // apply substitution process 40 times
+    let mut pairs_10 = HashMap::new();
+    for i in 0..40 {
+        let mut new_pairs = HashMap::<String, usize>::new();
+        for (key, count) in pairs.iter() {
+            if let Some(c) = insertion_rules.get(key.as_str()) {
+                for new_key in [
+                    String::from_iter([key.chars().nth(0).unwrap(), *c]),
+                    String::from_iter([*c, key.chars().nth(1).unwrap()]),
+                ] {
+                    if let Some(c) = new_pairs.get_mut(&new_key) {
+                        *c += count;
+                    } else {
+                        new_pairs.insert(new_key, *count);
+                    }
+                }
+            } else {
+                if let Some(c) = new_pairs.get_mut(key) {
+                    *c += count;
+                } else {
+                    new_pairs.insert(key.clone(), *count);
+                }
+            }
+        }
+        pairs = new_pairs;
+        if i == 9 {
+            pairs_10 = pairs.clone();
+        }
+    }
+
+    // find difference in quantities of most and least common elements
+    let mut elements = HashMap::new();
+    for (key, count) in pairs_10 {
+        for pos in [0, 1] {
+            if let Some(c) = elements.get_mut(&key.chars().nth(pos).unwrap()) {
+                *c += count;
+            } else {
+                elements.insert(key.chars().nth(pos).unwrap(), count);
+            }
+        }
+    }
+    // each element is counted exactly twice, except for the first and last
+    elements = elements
+        .into_iter()
+        .map(|(k, v)| (k, (v + 1) / 2))
+        .collect();
+    let q_diff_10 = elements.values().max().unwrap() - elements.values().min().unwrap();
+
+    // same but for the state after 40 steps
+    let mut elements = HashMap::new();
+    for (key, count) in pairs {
+        for pos in [0, 1] {
+            if let Some(c) = elements.get_mut(&key.chars().nth(pos).unwrap()) {
+                *c += count;
+            } else {
+                elements.insert(key.chars().nth(pos).unwrap(), count);
+            }
+        }
+    }
+    elements = elements
+        .into_iter()
+        .map(|(k, v)| (k, (v + 1) / 2))
+        .collect();
+    let q_diff_40 = elements.values().max().unwrap() - elements.values().min().unwrap();
+
+    // print result
+    println!("{}, {}", q_diff_10, q_diff_40);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -962,5 +1059,6 @@ fn main() {
     // day_10();
     // day_11();
     // day_12();
-    day_13();
+    // day_13();
+    day_14();
 }

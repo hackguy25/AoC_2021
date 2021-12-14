@@ -69,3 +69,7 @@ Since I might get new insights or ideas for an old solution later down the road,
 
 ### Day 13
 - Closure parameters can't be easily given lifetimes
+
+### Day 14
+- Hash maps/sets can take `&str`s as keys
+- `String`s can be constructed from `char` arrays: `String::from_iter([key.chars().nth(0).unwrap(), *c])`
