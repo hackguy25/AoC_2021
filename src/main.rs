@@ -1046,6 +1046,154 @@ fn day_14() {
     println!("{}, {}", q_diff_10, q_diff_40);
 }
 
+fn day_15() {
+    // read and parse data
+    let data = fs::read_to_string("inputs/day_15.in").expect("aaa");
+    let risks = data
+        .lines()
+        .map(|l| {
+            l.chars()
+                .map(|c| c.to_digit(10).unwrap() as u8)
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    // dynamic programming approach:
+    // start at (0, 0)
+    // every time a tile is updated, if its risk changed, add its neighbors into queue
+    // to update a tile check its neighbors, select the one with smallest risk and add its own risk
+    // repeat until the queue is empty
+
+    // prepare auxiliary items
+    struct TileState {
+        risk: u8,
+        total_risk: u32,
+        selected_neighbor: (i8, i8),
+    }
+    let (height, width) = (risks.len() as i32 + 2, risks[0].len() as i32 + 2);
+    let border_tile = || TileState {
+        risk: 255,
+        total_risk: u32::MAX,
+        selected_neighbor: (0, 0),
+    };
+
+    // prepare field
+    let mut field = Vec::new();
+    field.reserve((height * width) as usize);
+    field.extend((0..width).map(|_| border_tile()));
+    for l in &risks {
+        field.push(border_tile());
+        for r in l {
+            field.push(TileState {
+                risk: *r,
+                total_risk: u32::MAX,
+                selected_neighbor: (0, 0),
+            })
+        }
+        field.push(border_tile());
+    }
+    field.extend((0..width).map(|_| border_tile()));
+
+    // adjust starting point
+    field[width as usize + 1].risk = 0;
+    field[width as usize + 1].total_risk = 0;
+
+    // prepare first neighbors
+    let mut queue = Vec::new();
+    queue.push((2_i32, 1_i32));
+    queue.push((1, 2));
+
+    // loop through candidates
+    while let Some((x, y)) = queue.pop() {
+        // ignore border cells
+        if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
+            continue;
+        }
+
+        // check all neighbors
+        let mut notify = false;
+        for (dx, dy) in [(-1, 0), (0, -1), (1, 0), (0, 1)] {
+            // let current = &mut field[(y * width + x) as usize];
+            // let neighbor = &field[((y+dy) * width + (x+dx)) as usize];
+            let new_risk = field[(y * width + x) as usize].risk as u64
+                + field[((y + dy) * width + (x + dx)) as usize].total_risk as u64;
+            if new_risk < field[(y * width + x) as usize].total_risk as u64 {
+                let current = &mut field[(y * width + x) as usize];
+                current.total_risk = new_risk as u32;
+                current.selected_neighbor = (dx as i8, dy as i8);
+                notify = true;
+            }
+        }
+        if notify {
+            for (dx, dy) in [(-1, 0), (0, -1), (1, 0), (0, 1)] {
+                queue.push((x + dx, y + dy));
+            }
+        }
+    }
+
+    // extract risk
+    print!("{}", field[((height - 1) * width - 2) as usize].total_risk);
+
+    // same procedure, but for way larger field
+    let (height, width) = (risks.len() as i32 * 5 + 2, risks[0].len() as i32 * 5 + 2);
+    let mut field = Vec::new();
+    field.reserve((height * width) as usize);
+    field.extend((0..width).map(|_| border_tile()));
+    for dy in 0..5 {
+        for l in &risks {
+            field.push(border_tile());
+            for dx in 0..5 {
+                for r in l {
+                    let mut rr = r + dx + dy;
+                    while rr > 9 {
+                        rr -= 9;
+                    }
+                    field.push(TileState {
+                        risk: rr,
+                        total_risk: u32::MAX,
+                        selected_neighbor: (0, 0),
+                    })
+                }
+            }
+            field.push(border_tile());
+        }
+    }
+    field.extend((0..width).map(|_| border_tile()));
+
+    field[width as usize + 1].risk = 0;
+    field[width as usize + 1].total_risk = 0;
+
+    let mut queue = Vec::new();
+    queue.push((2_i32, 1_i32));
+    queue.push((1, 2));
+
+    while let Some((x, y)) = queue.pop() {
+        if x == 0 || x == width - 1 || y == 0 || y == height - 1 {
+            continue;
+        }
+
+        let mut notify = false;
+        for (dx, dy) in [(-1, 0), (0, -1), (1, 0), (0, 1)] {
+            let new_risk = field[(y * width + x) as usize].risk as u64
+                + field[((y + dy) * width + (x + dx)) as usize].total_risk as u64;
+            if new_risk < field[(y * width + x) as usize].total_risk as u64 {
+                let current = &mut field[(y * width + x) as usize];
+                current.total_risk = new_risk as u32;
+                current.selected_neighbor = (dx as i8, dy as i8);
+                notify = true;
+            }
+        }
+        if notify {
+            for (dx, dy) in [(-1, 0), (0, -1), (1, 0), (0, 1)] {
+                queue.push((x + dx, y + dy));
+            }
+        }
+    }
+
+    let risk_2 = field[((height - 1) * width - 2) as usize].total_risk;
+    println!(", {}", risk_2);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1060,5 +1208,6 @@ fn main() {
     // day_11();
     // day_12();
     // day_13();
-    day_14();
+    // day_14();
+    day_15();
 }

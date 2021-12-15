@@ -73,3 +73,8 @@ Since I might get new insights or ideas for an old solution later down the road,
 ### Day 14
 - Hash maps/sets can take `&str`s as keys
 - `String`s can be constructed from `char` arrays: `String::from_iter([key.chars().nth(0).unwrap(), *c])`
+
+### Day 15
+- Iterating over a changing container: `while let Some(x) = container.pop() { ... }`
+- Multiple elements for a `Vec` cannot be borrowed if one borrow is mutable
+- A queue: `let mut queue = VecDeque; queue.push_back(x); queue.pop_front()`
