@@ -1194,6 +1194,138 @@ fn day_15() {
     println!(", {}", risk_2);
 }
 
+fn day_16() {
+    // read and prepare bits
+    let data = fs::read_to_string("inputs/day_16.in").expect("aaa");
+    let packet = data
+        .trim()
+        .chars()
+        .flat_map(|c| (0..4).map(move |n| ((1 << (3 - n) & c.to_digit(16).unwrap()) > 0) as u8))
+        .collect::<Vec<_>>();
+    // println!("  {:?}", packet);
+
+    // recursive function summing up the version numbers of all subpackets
+    fn sum_versions<I: Iterator<Item = u8>>(data: &mut I) -> Option<u32> {
+        let version = data.next()? * 4 + data.next()? * 2 + data.next()?;
+        let type_ID = data.next()? * 4 + data.next()? * 2 + data.next()?;
+        if type_ID == 4 {
+            // literal value
+            // println!("literal: {} {}", version, type_ID);
+            // let mut count = 1;
+            while data.next()? == 1 {
+                data.nth(3);
+                // count += 1;
+            }
+            data.nth(3);
+            // println!("  {:?}", count);
+            Some(version as u32)
+        } else {
+            // operator
+            let mut acc = version as u32;
+            if data.next()? == 0 {
+                // println!("operator, len: {} {}", version, type_ID);
+                // next 15 bits represent the total bit length of subpackets
+                let mut bit_len = 0;
+                for _ in 0..15 {
+                    bit_len *= 2;
+                    bit_len += data.next()? as usize;
+                }
+                let subpackets_v = data.by_ref().take(bit_len).collect::<Vec<_>>();
+                // println!("  {:?}", subpackets_v);
+                let mut subpackets = subpackets_v.into_iter();
+
+                while let Some(n) = sum_versions(&mut subpackets) {
+                    acc += n;
+                }
+            } else {
+                // next 11 bits represent number of subpackets
+                // println!("operator, num: {} {}", version, type_ID);
+                let mut bit_len = 0;
+                for _ in 0..11 {
+                    bit_len *= 2;
+                    bit_len += data.next()? as usize;
+                }
+                // println!("  {:?}", bit_len);
+                for _ in 0..bit_len {
+                    acc += sum_versions(data)?;
+                }
+            }
+            Some(acc)
+        }
+    }
+
+    // sum up versions
+    print!("{}", sum_versions(&mut packet.clone().into_iter()).unwrap());
+
+    // recursive function summing up the version numbers of all subpackets
+    fn evaluate<I: Iterator<Item = u8>>(data: &mut I) -> Option<u64> {
+        let _ = data.next()? * 4 + data.next()? * 2 + data.next()?;
+        let type_ID = data.next()? * 4 + data.next()? * 2 + data.next()?;
+        if type_ID == 4 {
+            // literal value
+            // println!("literal: {}", type_ID);
+            let mut acc = 0;
+            while data.next()? == 1 {
+                for _ in 0..4 {
+                    acc *= 2;
+                    acc += data.next()? as u64;
+                }
+            }
+            for _ in 0..4 {
+                acc *= 2;
+                acc += data.next()? as u64;
+            }
+            // println!("  {:?}", acc);
+            Some(acc)
+        } else {
+            // operator, extract subpackets
+            let mut acc = vec![];
+            if data.next()? == 0 {
+                // println!("operator, len: {}", type_ID);
+                // next 15 bits represent the total bit length of subpackets
+                let mut bit_len = 0;
+                for _ in 0..15 {
+                    bit_len *= 2;
+                    bit_len += data.next()? as usize;
+                }
+                let subpackets_v = data.by_ref().take(bit_len).collect::<Vec<_>>();
+                // println!("  {:?}", subpackets_v);
+                let mut subpackets = subpackets_v.into_iter();
+
+                while let Some(n) = evaluate(&mut subpackets) {
+                    acc.push(n);
+                }
+            } else {
+                // next 11 bits represent number of subpackets
+                // println!("operator, num: {}", type_ID);
+                let mut bit_len = 0;
+                for _ in 0..11 {
+                    bit_len *= 2;
+                    bit_len += data.next()? as usize;
+                }
+                // println!("  {:?}", bit_len);
+                for _ in 0..bit_len {
+                    acc.push(evaluate(data)?);
+                }
+            }
+            // println!("  {:?}", acc);
+            match type_ID {
+                0 => Some(acc.iter().sum()),                    // sum packet
+                1 => Some(acc.iter().product()),                // product packet
+                2 => Some(*acc.iter().min()?),                  // minimum packet
+                3 => Some(*acc.iter().max()?),                  // maximum packet
+                5 => Some((acc.get(0)? > acc.get(1)?) as u64),  // greater than packet
+                6 => Some((acc.get(0)? < acc.get(1)?) as u64),  // less than packet
+                7 => Some((acc.get(0)? == acc.get(1)?) as u64), // equal to packet
+                _ => None,
+            }
+        }
+    }
+
+    // evaluate expression
+    println!(", {}", evaluate(&mut packet.clone().into_iter()).unwrap());
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1209,5 +1341,6 @@ fn main() {
     // day_12();
     // day_13();
     // day_14();
-    day_15();
+    // day_15();
+    day_16()
 }
