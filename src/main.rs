@@ -1326,6 +1326,90 @@ fn day_16() {
     println!(", {}", evaluate(&mut packet.clone().into_iter()).unwrap());
 }
 
+fn day_17() {
+    // read the data
+    let data = fs::read_to_string("inputs/day_17.in").expect("aaa");
+    let mut data = data
+        .split("x=")
+        .nth(1)
+        .unwrap()
+        .trim()
+        .split(", y=")
+        .flat_map(|x| x.split(".."))
+        .map(|x| x.parse::<i32>().unwrap());
+    let area = [
+        data.next().unwrap(),
+        data.next().unwrap(),
+        data.next().unwrap(),
+        data.next().unwrap(),
+    ];
+
+    // simple 2D point
+    struct Vec2 {
+        x: i32,
+        y: i32,
+    }
+    impl std::ops::AddAssign<&Vec2> for Vec2 {
+        fn add_assign(&mut self, other: &Self) {
+            self.x += other.x;
+            self.y += other.y;
+        }
+    }
+
+    // function that checks if probe lands inside the target area
+    fn lands(x_vel: i32, y_vel: i32, area: &[i32; 4]) -> bool {
+        let mut pos = Vec2 { x: 0, y: 0 };
+        let mut vel = Vec2 { x: x_vel, y: y_vel };
+
+        loop {
+            if pos.x >= area[0] && pos.x <= area[1] && pos.y >= area[2] && pos.y <= area[3] {
+                // probe lies inside the area
+                return true;
+            }
+            if pos.x > area[1] || vel.y <= 0 && pos.y < area[2] {
+                // probe overshot the area
+                return false;
+            }
+            pos += &vel;
+            if vel.x > 0 {
+                vel.x -= 1;
+            }
+            vel.y -= 1;
+        }
+    }
+
+    // find minimum viable x velocity
+    let mut min_x_vel = 1;
+    loop {
+        let max_x = (min_x_vel + 1) * min_x_vel / 2;
+        if max_x >= area[0] {
+            break;
+        }
+        min_x_vel += 1;
+    }
+
+    // find viable trajectory with the largest y value
+    let mut best_max_y = i32::MIN;
+    let mut target_vel = Vec2 { x: 0, y: 0 };
+    let mut num_possible = 0;
+    for x_vel in min_x_vel..(area[1] + 1) {
+        for y_vel in area[2]..1000 {
+            if lands(x_vel, y_vel, &area) {
+                let max_y = (y_vel + 1) * y_vel / 2;
+                num_possible += 1;
+                if max_y > best_max_y {
+                    best_max_y = max_y;
+                    target_vel.x = x_vel;
+                    target_vel.y = y_vel;
+                }
+            }
+        }
+    }
+
+    // display the result
+    println!("{}, {}", best_max_y, num_possible);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1342,5 +1426,6 @@ fn main() {
     // day_13();
     // day_14();
     // day_15();
-    day_16()
+    // day_16();
+    day_17();
 }

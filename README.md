@@ -84,4 +84,8 @@ Since I might get new insights or ideas for an old solution later down the road,
 - Strings can be formatted using format strings (see `std::fmt`)
 - Functions that would consume an iterator can instead only take elements by passing `it.by_ref()`:
   - Take 5 elements into a `vec`: `it.by_ref().take(5).collect::<Vec<_>>()`
-- Type trait's associated types can be further bounded: `fn evaluate<I: Iterator<Item = u8>>(...) ...`
+- Type trait's associated types can be further bounded: `fn evaluate<I: Iterator<Item = u8>>(...) ...`ž
+
+### Day 17
+- Rust doesn't have named tuples, structs must be used
+- Binary operators can be implemented for custom types by implementing traits in `std::ops`
