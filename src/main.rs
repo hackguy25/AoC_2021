@@ -3,6 +3,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::rc::Rc;
 use std::vec::Vec;
 
 fn day_01() {
@@ -1410,6 +1411,181 @@ fn day_17() {
     println!("{}, {}", best_max_y, num_possible);
 }
 
+fn day_18() {
+    // read the data
+    let data = fs::read_to_string("inputs/day_18.in").expect("aaa");
+
+    // define a pair type
+    #[derive(Clone)]
+    enum Element {
+        Value(i32),
+        Pair(Rc<(Element, Element)>),
+    }
+    impl Element {
+        fn value(self) -> i32 {
+            if let Value(n) = self {
+                n.clone()
+            } else {
+                panic!("Not a value")
+            }
+        }
+        fn pair(&mut self) -> (Element, Element) {
+            if let Pair(rc) = self {
+                Rc::make_mut(rc).clone()
+            } else {
+                panic!("Not a pair")
+            }
+        }
+    }
+    impl std::fmt::Debug for Element {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Value(n) => n.fmt(f),
+                Pair(p) => {
+                    let (l, r) = &**p;
+                    f.debug_list().entry(l).entry(r).finish()
+                }
+            }
+        }
+    }
+    use Element::*;
+
+    // recursive number parsing function
+    fn parse_num(source: &mut std::str::Chars) -> Element {
+        if let Some(n) = source.next().unwrap().to_digit(10) {
+            Value(n as i32)
+        } else {
+            let l = parse_num(source);
+            source.next().unwrap();
+            let r = parse_num(source);
+            source.next().unwrap();
+            Pair(Rc::new((l, r)))
+        }
+    }
+
+    // parse the data
+    let mut numbers = data
+        .lines()
+        .map(|l| parse_num(&mut l.chars()))
+        .collect::<Vec<_>>();
+    numbers.reverse(); // allows popping from the front of vec
+
+    // number reducing function
+    fn reduce(num: &mut Element) {
+        fn add_to_leftmost(num: &mut Element, val: i32) -> Element {
+            match num {
+                Value(v) => Value(*v + val),
+                Pair(p) => {
+                    let (l, r) = Rc::make_mut(p);
+                    Pair(Rc::new((add_to_leftmost(l, val), r.clone())))
+                }
+            }
+        }
+        fn add_to_rightmost(num: &mut Element, val: i32) -> Element {
+            match num {
+                Value(v) => Value(*v + val),
+                Pair(p) => {
+                    let (l, r) = Rc::make_mut(p);
+                    Pair(Rc::new((l.clone(), add_to_rightmost(r, val))))
+                }
+            }
+        }
+
+        // explode the leftmost pair of depth 5
+        fn explode(num: &mut Element, depth: i32) -> Option<(i32, i32)> {
+            if depth == 4 {
+                if let Pair(p) = num {
+                    let (l, r) = Rc::make_mut(p).clone();
+                    *num = Value(0);
+                    Some((l.value(), r.value()))
+                } else {
+                    None
+                }
+            } else {
+                if let Pair(p) = num {
+                    let (l, r) = Rc::make_mut(p);
+                    if let Some((ll, rr)) = explode(l, depth + 1) {
+                        *num = Pair(Rc::new((l.clone(), add_to_leftmost(r, rr))));
+                        Some((ll, 0))
+                    } else if let Some((ll, rr)) = explode(r, depth + 1) {
+                        *num = Pair(Rc::new((add_to_rightmost(l, ll), r.clone())));
+                        Some((0, rr))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+        }
+
+        // split the leftmost regular number over 9
+        fn split(num: &mut Element) -> bool {
+            match num {
+                Value(n) => {
+                    if *n > 9 {
+                        *num = Pair(Rc::new((Value(*n / 2), Value((*n + 1) / 2))));
+                        true
+                    } else {
+                        false
+                    }
+                }
+                Pair(p) => {
+                    let (l, r) = Rc::get_mut(p).unwrap();
+                    split(l) || split(r)
+                }
+            }
+        }
+
+        loop {
+            // try exploding, else try splitting, else return
+            if let Some(_) = explode(num, 0) {
+                continue;
+            } else if split(num) {
+                continue;
+            } else {
+                break;
+            }
+        }
+    }
+
+    // function that calculates magnitude of a number
+    fn magnitude(num: &Element) -> i32 {
+        match num {
+            Value(n) => *n,
+            Pair(p) => {
+                let (l, r) = &**p;
+                3 * magnitude(l) + 2 * magnitude(r)
+            }
+        }
+    }
+
+    // reduce all numbers
+    let mut num_iter = numbers.iter();
+    let mut acc = num_iter.next().unwrap().clone();
+    for next in num_iter {
+        acc = Pair(Rc::new((acc, next.clone())));
+        reduce(&mut acc);
+    }
+
+    // find largest magnitude of sum of 2 distinct numbers
+    let mut max_magnitude = 0;
+    for i in 0..numbers.len() {
+        for j in 0..numbers.len() {
+            if i == j {
+                continue;
+            }
+            let mut acc = Pair(Rc::new((numbers[i].clone(), numbers[j].clone())));
+            reduce(&mut acc);
+            let curr_magnitude = magnitude(&acc);
+            max_magnitude = std::cmp::max(max_magnitude, curr_magnitude);
+        }
+    }
+
+    // display the result
+    println!("{}, {}", magnitude(&acc), max_magnitude);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1427,5 +1603,6 @@ fn main() {
     // day_14();
     // day_15();
     // day_16();
-    day_17();
+    // day_17();
+    day_18();
 }

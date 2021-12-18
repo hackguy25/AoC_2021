@@ -89,3 +89,12 @@ Since I might get new insights or ideas for an old solution later down the road,
 ### Day 17
 - Rust doesn't have named tuples, structs must be used
 - Binary operators can be implemented for custom types by implementing traits in `std::ops`
+
+### Day 18
+- Garbage collection can be emulated using a reference-counting pointer: `std::rc::Rc`
+- Structs/Enums can't have nested types defined inside
+- Enum variants can be brought into scope: `enum Foo { A(i32), B, ... }; use Foo::*;`
+- Debug strings can be derived or implemented by hand for new types
+- Dereferenced values can be borrowed: `let (l, r) = &**p;`
+- Functions can be implemented to extract enum variants directly: `impl Foo { fn a(self) -> i32 { if let Foo::A(n) = self { n } else { panic!("Foo not A") } } }`
+- Ranges can be exclusive (`a..b`) or inclusive (`a..=b`) at the end
