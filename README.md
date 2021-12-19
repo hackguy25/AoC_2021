@@ -98,3 +98,8 @@ Since I might get new insights or ideas for an old solution later down the road,
 - Dereferenced values can be borrowed: `let (l, r) = &**p;`
 - Functions can be implemented to extract enum variants directly: `impl Foo { fn a(self) -> i32 { if let Foo::A(n) = self { n } else { panic!("Foo not A") } } }`
 - Ranges can be exclusive (`a..b`) or inclusive (`a..=b`) at the end
+
+### Day 19
+- If the size is known in advance: `let a: [i32; 3] = vec.as_slice().try_into().unwrap();`
+- Destructuring assignments: `let x, y, z; let a = [1, 2, 3]; [x, y, z] = a;`
+  - At the time of writing an unstable features, to be added in Rust 1.59.0

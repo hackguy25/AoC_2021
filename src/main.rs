@@ -1586,6 +1586,186 @@ fn day_18() {
     println!("{}, {}", magnitude(&acc), max_magnitude);
 }
 
+fn day_19() {
+    // read the data
+    let data = fs::read_to_string("inputs/day_19.in").expect("aaa");
+    let scanners = data.split("\n\n");
+    let scanners = scanners
+        .map(|b| {
+            b.lines()
+                .skip(1)
+                .map(|l| {
+                    let point: [i32; 3] = l
+                        .split(",")
+                        .map(|n| n.parse::<i32>().unwrap())
+                        .collect::<Vec<_>>()
+                        .as_slice()
+                        .try_into()
+                        .unwrap();
+                    point
+                })
+                .collect::<HashSet<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    // function that rotates a point into one of 24 rotations
+    fn rotate(rot: usize, [x, y, z]: [i32; 3]) -> [i32; 3] {
+        let [x, y, z] = match rot / 4 {
+            0 => [x, y, z],
+            1 => [y, -x, z],
+            2 => [-x, -y, z],
+            3 => [-y, x, z],
+            4 => [z, y, -x],
+            5 => [-z, y, x],
+            _ => panic!("Not a valid rotation"),
+        };
+        match rot % 4 {
+            0 => [x, y, z],
+            1 => [x, z, -y],
+            2 => [x, -y, -z],
+            3 => [x, -z, y],
+            _ => panic!("Not a valid rotation"),
+        }
+    }
+    // table of inverse rotations
+    // rotate(inv_rot[r], rotate(r, point)) == point
+    let inv_rot = [
+        0, 3, 2, 1, 12, 19, 6, 21, 8, 9, 10, 11, 4, 23, 14, 17, 20, 15, 18, 5, 16, 7, 22, 13,
+    ];
+
+    // sanity check
+    for r in 0..24 {
+        assert_eq!(rotate(inv_rot[r], rotate(r, [0, 1, 2])), [0, 1, 2])
+    }
+
+    // set of connections between scanners, (from, to, rotation, delta)
+    let mut connections = vec![];
+
+    // check all pairs of scanners for overlaps
+    for from in 0..(scanners.len() - 1) {
+        'outer: for to in (from + 1)..scanners.len() {
+            // check all rotations and point overlaps
+            let reference = &scanners[from];
+            let compared = &scanners[to];
+            for rot in 0..24 {
+                let compared = compared.iter().map(|x| rotate(rot, *x)).collect::<Vec<_>>();
+                for refe in reference {
+                    'inner: for comp in &compared {
+                        let dx = refe[0] - comp[0];
+                        let dy = refe[1] - comp[1];
+                        let dz = refe[2] - comp[2];
+                        let compared = compared
+                            .iter()
+                            .map(|[x, y, z]| [x + dx, y + dy, z + dz])
+                            .filter(|[x, y, z]| {
+                                *x >= -1000
+                                    && *x <= 1000
+                                    && *y >= -1000
+                                    && *y <= 1000
+                                    && *z >= -1000
+                                    && *z <= 1000
+                            })
+                            .collect::<Vec<_>>();
+                        if compared.len() >= 12 {
+                            for point in compared {
+                                if !reference.contains(&point) {
+                                    // extraneous point => false overlap
+                                    continue 'inner;
+                                }
+                            }
+                            // 12 or more points, all matching both beacons
+                            // => found overlap
+                            connections.push((from, to, rot, [dx, dy, dz]));
+                            continue 'outer;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // find positions and rotations of scanners
+    let mut positions = HashMap::new();
+    positions.insert(0_usize, (vec![], [0, 0, 0]));
+
+    while connections.len() > 0 {
+        // unused connections remain
+        let mut remaining_connections = vec![];
+        for (from, to, rot, [mut dx, mut dy, mut dz]) in connections {
+            if positions.contains_key(&from) {
+                if positions.contains_key(&to) {
+                    // both beacons are already located
+                    continue;
+                } else {
+                    // only source is located
+                    // find position of the source
+                    let (mut rots, [x, y, z]) = positions[&from].clone();
+                    // recalculate delta based on rotations
+                    rots.reverse();
+                    for r in &rots {
+                        let delta = rotate(*r, [dx, dy, dz]);
+                        dx = delta[0]; // at this point destructuring assignments
+                        dy = delta[1]; // were not stable yet
+                        dz = delta[2];
+                    }
+                    rots.reverse();
+                    rots.push(rot);
+                    // insert newly calculated position
+                    positions.insert(to, (rots, [x + dx, y + dy, z + dz]));
+                }
+            } else {
+                if positions.contains_key(&to) {
+                    // only the destination is located => switch their places
+                    let inv = inv_rot[rot];
+                    remaining_connections.push((to, from, inv, rotate(inv, [-dx, -dy, -dz])));
+                } else {
+                    // both beacons are not located yet => try later
+                    remaining_connections.push((from, to, rot, [dx, dy, dz]));
+                }
+            }
+        }
+        connections = remaining_connections;
+    }
+
+    // compile beacons
+    let mut beacons = HashSet::new();
+    let ppositions = positions
+        .iter()
+        .map(|(n, (v, a))| (*n, (v.clone(), a.clone())))
+        .collect::<Vec<_>>();
+    for (scanner, (mut rots, [x, y, z])) in ppositions {
+        rots.reverse();
+        let new_beacons = scanners[scanner].iter().map(|[dx, dy, dz]| {
+            let (mut dx, mut dy, mut dz) = (*dx, *dy, *dz);
+            for r in &rots {
+                let delta = rotate(*r, [dx, dy, dz]);
+                dx = delta[0]; // at this point destructuring assignments
+                dy = delta[1]; // were not stable yet
+                dz = delta[2];
+            }
+            [x + dx, y + dy, z + dz]
+        });
+        beacons.extend(new_beacons);
+    }
+
+    // find largest manhattan distance
+    let mut acc = 0;
+    for i in 0..(positions.len() - 1) {
+        for j in (i + 1)..positions.len() {
+            let curr = positions[&i]
+                .1
+                .iter()
+                .zip(positions[&j].1.iter())
+                .map(|(x, y)| (x - y).abs())
+                .sum::<i32>();
+            acc = std::cmp::max(acc, curr);
+        }
+    }
+
+    // display the result
+    println!("{}, {}", beacons.len(), acc);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1604,5 +1784,6 @@ fn main() {
     // day_15();
     // day_16();
     // day_17();
-    day_18();
+    // day_18();
+    day_19();
 }
