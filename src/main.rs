@@ -1,8 +1,10 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
+#![allow(unused_imports)]
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
+use std::iter::{once, repeat};
 use std::rc::Rc;
 use std::vec::Vec;
 
@@ -1766,6 +1768,105 @@ fn day_19() {
     println!("{}, {}", beacons.len(), acc);
 }
 
+fn day_20() {
+    // read the data
+    let data = fs::read_to_string("inputs/day_20.in").expect("aaa");
+    let mut data_chunks = data.split("\n\n");
+    let algorithm = data_chunks
+        .next()
+        .unwrap()
+        .trim()
+        .chars()
+        .map(|c| c == '#')
+        .collect::<Vec<_>>();
+    let initial_image = data_chunks
+        .next()
+        .unwrap()
+        .lines()
+        .map(|l| l.chars().map(|c| c == '#').collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    // function that applies the image enhancement algorithm
+    // takes an image and the background, returns new image and background
+    fn enhance(
+        (image, bg): (Vec<Vec<bool>>, bool),
+        algorithm: &Vec<bool>,
+    ) -> (Vec<Vec<bool>>, bool) {
+        // pad the image properly
+        let width = image[0].len();
+        let image = image.into_iter().map(|l| {
+            let mut ret = vec![bg, bg];
+            ret.extend(l);
+            ret.extend([bg, bg]);
+            ret
+        });
+        let image = image
+            .chain(once(vec![bg; width + 4]))
+            .chain(once(vec![bg; width + 4]));
+
+        // iterate over the lines and collect
+        let (mut pprev, mut prev) = (vec![bg; width + 4], vec![bg; width + 4]);
+        let new_image = image
+            .map(|line| {
+                // iterator over triplets of elements
+                let mut line_iter = pprev.iter().zip(prev.iter().zip(line.iter()));
+                // prepare first two triplets
+                let temp = line_iter.next().unwrap();
+                let (pp, (cp, np)) = temp;
+                let temp = line_iter.next().unwrap();
+                let (pc, (cc, nc)) = temp;
+                let mut p = (*pp, *cp, *np);
+                let mut c = (*pc, *cc, *nc);
+                // iterate over the elements
+                let ret = line_iter
+                    .map(|(pn, (cn, nn))| {
+                        let n = (*pn, *cn, *nn);
+                        let idx = [p.0, c.0, n.0, p.1, c.1, n.1, p.2, c.2, n.2]
+                            .iter()
+                            .fold(0, |a, x| 2 * a + *x as usize);
+                        p = c;
+                        c = n;
+                        algorithm[idx]
+                    })
+                    .collect::<Vec<_>>();
+                pprev = prev.clone();
+                prev = line;
+                ret
+            })
+            .collect::<Vec<_>>();
+
+        // return new image and enhanced background
+        (new_image, algorithm[511 * bg as usize])
+    }
+
+    // apply enhancement algorithm twice
+    let (image, bg) = enhance((initial_image.clone(), false), &algorithm);
+    let (mut image, mut bg) = enhance((image, bg), &algorithm);
+    assert_eq!(bg, false);
+
+    // count number of light pixels
+    let light = image
+        .iter()
+        .map(|l| l.iter().filter(|x| **x).count())
+        .sum::<usize>();
+
+    // apply enhancement 48 more times
+    for _ in 0..48 {
+        let ret = enhance((image, bg), &algorithm);
+        image = ret.0;
+        bg = ret.1;
+    }
+
+    // count number of light pixels
+    let light_full = image
+        .iter()
+        .map(|l| l.iter().filter(|x| **x).count())
+        .sum::<usize>();
+
+    // display the result
+    println!("{}, {}", light, light_full);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1785,5 +1886,6 @@ fn main() {
     // day_16();
     // day_17();
     // day_18();
-    day_19();
+    // day_19();
+    day_20();
 }

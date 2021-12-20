@@ -73,6 +73,7 @@ Since I might get new insights or ideas for an old solution later down the road,
 ### Day 14
 - Hash maps/sets can take `&str`s as keys
 - `String`s can be constructed from `char` arrays: `String::from_iter([key.chars().nth(0).unwrap(), *c])`
+  - also works by collecting: `vec_of_chars.into_iter().collect::<String>()`
 
 ### Day 15
 - Iterating over a changing container: `while let Some(x) = container.pop() { ... }`
@@ -103,3 +104,22 @@ Since I might get new insights or ideas for an old solution later down the road,
 - If the size is known in advance: `let a: [i32; 3] = vec.as_slice().try_into().unwrap();`
 - Destructuring assignments: `let x, y, z; let a = [1, 2, 3]; [x, y, z] = a;`
   - At the time of writing an unstable features, to be added in Rust 1.59.0
+
+### Day 20
+- `vec` macro can be used to initialize large vecs: `let a = vec![0; 1024];`
+- Useful iterator functions:
+  - `std::iter::once(x)` returns `x` once
+  - `std::iter::repeat(x)` returns `x` forever
+  - `it1.chain(it2)` first returns all values from `it1` and then all values from `it2`
+  - `it1.zip(it2)` returns an iterator returning tuples `(x1, x2)` while both iterators return values
+  - `it.cycle()` repeatedly returns all values from `it`, repeating from the beginning
+  - `it.enumerate()` returns enumerated elements from `it`
+  - `it.flatten()` returns elements of elements of `it`
+  - `it.fold(init, f)` reduces `it` by `acc = init; loop { acc = f(acc, it.next()) }`
+  - `it.intersperse(x)` alternates between elements of `it` and returning `x`
+  - `it.{max,min}_by(f)` applies `f` to each element and returns the extreme
+  - `it.nth(n)` discards `n - 1` elements and returns `n`th
+  - `it.reduce(f)` reduces consecutive elements by `x = f(x, y)`
+  - `it.skip(n)` returns an iterator with elements of `it` from `n` onward
+  - `it.take(n)` returns next `n` values from `it` (consuming it in the process)
+  - `it.unzip()` collects tuples into a tuple of containers
