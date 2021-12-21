@@ -1867,6 +1867,104 @@ fn day_20() {
     println!("{}, {}", light, light_full);
 }
 
+fn day_21() {
+    // read the data
+    let data = fs::read_to_string("inputs/day_21.in").expect("aaa");
+    let mut lines = data
+        .lines()
+        .map(|l| l.split(": ").nth(1).unwrap().parse::<i32>());
+    let (p1_start, p2_start) = (
+        lines.next().unwrap().unwrap(),
+        lines.next().unwrap().unwrap(),
+    );
+
+    // the mythical deterministic die
+    struct Die {
+        pub rolls: i32,
+    }
+    impl Die {
+        fn roll(&mut self) -> i32 {
+            let ret = (self.rolls % 100) + 1;
+            self.rolls += 1;
+            ret
+        }
+    }
+    let mut die = Die { rolls: 0 };
+
+    // play the game
+    let (mut p1_pos, mut p2_pos) = (p1_start - 1, p2_start - 1);
+    let (mut p1_score, mut p2_score) = (0, 0);
+    loop {
+        // player 1
+        let roll = die.roll() + die.roll() + die.roll();
+        p1_pos += roll;
+        p1_pos %= 10;
+        p1_score += p1_pos + 1;
+        if p1_score >= 1000 {
+            break;
+        }
+
+        // player 2
+        let roll = die.roll() + die.roll() + die.roll();
+        p2_pos += roll;
+        p2_pos %= 10;
+        p2_score += p2_pos + 1;
+        if p2_score >= 1000 {
+            break;
+        }
+    }
+
+    // calculate first result
+    let val1 = std::cmp::min(p1_score, p2_score) * die.rolls;
+
+    // possible universes after 3 rolls:
+    // 3 4 5  4 5 6  5 6 7
+    // 4 5 6  5 6 7  6 7 8
+    // 5 6 7  6 7 8  7 8 9
+
+    // the only difference is total sum:
+    // (3 => 1 universe)
+    // (4 => 3 universes)
+    // (5 => 6 universes)
+    // (6 => 7 universes)
+    // (7 => 6 universes)
+    // (8 => 3 universes)
+    // (9 => 1 universe)
+    let univ_count = [0_u64, 0, 0, 1, 3, 6, 7, 6, 3, 1];
+
+    // state: (p1_pos, p1_score, p2_pos, p2_score, num_universes, player)
+    let mut states = vec![(p1_start - 1, 0, p2_start - 1, 0, 1_u64, true)];
+    let (mut p1_wins, mut p2_wins) = (0_u64, 0_u64);
+    while let Some((p1_pos, p1_score, p2_pos, p2_score, num_universes, p1)) = states.pop() {
+        if p1 {
+            for i in 3..10 {
+                let p1_pos = (p1_pos + i as i32) % 10;
+                let p1_score = p1_score + p1_pos + 1;
+                let num_universes = num_universes * univ_count[i];
+                if p1_score >= 21 {
+                    p1_wins += num_universes;
+                } else {
+                    states.push((p1_pos, p1_score, p2_pos, p2_score, num_universes, false));
+                }
+            }
+        } else {
+            for i in 3..10 {
+                let p2_pos = (p2_pos + i as i32) % 10;
+                let p2_score = p2_score + p2_pos + 1;
+                let num_universes = num_universes * univ_count[i];
+                if p2_score >= 21 {
+                    p2_wins += num_universes;
+                } else {
+                    states.push((p1_pos, p1_score, p2_pos, p2_score, num_universes, true));
+                }
+            }
+        }
+    }
+
+    // display the result
+    println!("{}, {}", val1, std::cmp::max(p1_wins, p2_wins));
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1887,5 +1985,6 @@ fn main() {
     // day_17();
     // day_18();
     // day_19();
-    day_20();
+    // day_20();
+    day_21();
 }
