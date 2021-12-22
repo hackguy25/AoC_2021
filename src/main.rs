@@ -2,6 +2,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
+use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::iter::{once, repeat};
@@ -1965,6 +1966,209 @@ fn day_21() {
     println!("{}, {}", val1, std::cmp::max(p1_wins, p2_wins));
 }
 
+fn day_22() {
+    // read and parse the data
+    let data = fs::read_to_string("inputs/day_22.in").expect("aaa");
+    let steps = data
+        .lines()
+        .map(|l| {
+            let mut line = l.split(" ");
+            let state = line.next().unwrap() == "on";
+            let mut line = line.next().unwrap().trim().split(",");
+            let mut lims = line.next().unwrap().split("=").nth(1).unwrap().split("..");
+            let (xmin, xmax) = (lims.next().unwrap(), lims.next().unwrap());
+            let (xmin, xmax) = (xmin.parse::<i32>().unwrap(), xmax.parse::<i32>().unwrap());
+            let mut lims = line.next().unwrap().split("=").nth(1).unwrap().split("..");
+            let (ymin, ymax) = (lims.next().unwrap(), lims.next().unwrap());
+            let (ymin, ymax) = (ymin.parse::<i32>().unwrap(), ymax.parse::<i32>().unwrap());
+            let mut lims = line.next().unwrap().split("=").nth(1).unwrap().split("..");
+            let (zmin, zmax) = (lims.next().unwrap(), lims.next().unwrap());
+            let (zmin, zmax) = (zmin.parse::<i32>().unwrap(), zmax.parse::<i32>().unwrap());
+            (xmin, xmax, ymin, ymax, zmin, zmax, state)
+        })
+        .collect::<Vec<_>>();
+
+    // prepare the small cuboid
+    let mut small_cuboid = vec![false; 101 * 101 * 101];
+
+    // turn on/off all cubes in the small cuboid
+    for (xmin, xmax, ymin, ymax, zmin, zmax, state) in &steps {
+        if *xmin > 50 || *xmax < -50 || *ymin > 50 || *ymax < -50 || *zmin > 50 || *zmax < -50 {
+            // given cuboid doesn't overlap with the small cuboid
+            continue;
+        }
+        let (xmin, xmax) = (max(-50, *xmin), min(50, *xmax));
+        let (ymin, ymax) = (max(-50, *ymin), min(50, *ymax));
+        let (zmin, zmax) = (max(-50, *zmin), min(50, *zmax));
+        for x in xmin..=xmax {
+            for y in ymin..=ymax {
+                for z in zmin..=zmax {
+                    small_cuboid
+                        [10201 * (z + 50) as usize + 101 * (y + 50) as usize + (x + 50) as usize] =
+                        *state;
+                }
+            }
+        }
+    }
+
+    // count number of cubes turned on
+    let small_lit = small_cuboid.iter().filter(|x| **x).count();
+
+    // a set of range trees (kinda)
+    struct Range1D {
+        splits: Vec<i32>,
+        values: Vec<bool>,
+    }
+    impl Range1D {
+        fn construct(ranges: &Vec<(i32, i32, bool)>) -> Range1D {
+            // determine all possible split points
+            let mut splits = vec![];
+            for (min, max, _) in ranges {
+                splits.push(*min);
+                splits.push(max + 1); // inclusive upper bound is given
+            }
+            splits.sort_unstable();
+            splits.dedup();
+
+            // apply steps onto ranges
+            let mut values = if splits.len() > 0 {
+                vec![false; splits.len() - 1]
+            } else {
+                vec![]
+            };
+            for (min, max, val) in ranges {
+                let (min, max) = (*min, max + 1);
+                for idx in
+                    (splits.binary_search(&min).unwrap())..(splits.binary_search(&max).unwrap())
+                {
+                    values[idx] = *val;
+                }
+            }
+            Range1D { splits, values }
+        }
+        // sum up ranges where cubes are lit up
+        fn count(&self) -> u64 {
+            if self.splits.len() > 0 {
+                let mut prev = self.splits[0];
+                let mut acc = 0;
+                for i in 1..self.splits.len() {
+                    if self.values[i - 1] {
+                        acc += self.splits[i] - prev;
+                    }
+                    prev = self.splits[i];
+                }
+                acc as u64
+            } else {
+                0
+            }
+        }
+    }
+
+    struct Range2D {
+        splits: Vec<i32>,
+        values: Vec<Range1D>,
+    }
+    impl Range2D {
+        fn construct(ranges: &Vec<(i32, i32, i32, i32, bool)>) -> Range2D {
+            // determine all possible split points
+            let mut splits = vec![];
+            for (min, max, _, _, _) in ranges {
+                splits.push(*min);
+                splits.push(max + 1);
+            }
+            splits.sort_unstable();
+            splits.dedup();
+
+            // apply steps onto 1D ranges
+            let mut values = if splits.len() > 0 {
+                vec![vec![]; splits.len() - 1]
+            } else {
+                vec![]
+            };
+            for (min, max, mmin, mmax, val) in ranges {
+                let (min, max) = (*min, max + 1);
+                for idx in
+                    (splits.binary_search(&min).unwrap())..(splits.binary_search(&max).unwrap())
+                {
+                    values[idx].push((*mmin, *mmax, *val));
+                }
+            }
+            let values = values.into_iter().map(|v| Range1D::construct(&v)).collect();
+            Range2D { splits, values }
+        }
+
+        // sum up counts of 1D ranges times range widths
+        fn count(&self) -> u64 {
+            if self.splits.len() > 0 {
+                let mut prev = self.splits[0];
+                let mut acc = 0;
+                for i in 1..self.splits.len() {
+                    acc += (self.splits[i] - prev) as u64 * self.values[i - 1].count();
+                    prev = self.splits[i];
+                }
+                acc as u64
+            } else {
+                0
+            }
+        }
+    }
+
+    struct Range3D {
+        splits: Vec<i32>,
+        values: Vec<Range2D>,
+    }
+    impl Range3D {
+        fn construct(ranges: &Vec<(i32, i32, i32, i32, i32, i32, bool)>) -> Range3D {
+            // determine all possible split points
+            let mut splits = vec![];
+            for (min, max, _, _, _, _, _) in ranges {
+                splits.push(*min);
+                splits.push(max + 1);
+            }
+            splits.sort_unstable();
+            splits.dedup();
+
+            // apply steps onto 1D ranges
+            let mut values = if splits.len() > 0 {
+                vec![vec![]; splits.len() - 1]
+            } else {
+                vec![]
+            };
+            for (min, max, mmin, mmax, mmmin, mmmax, val) in ranges {
+                let (min, max) = (*min, max + 1);
+                for idx in
+                    (splits.binary_search(&min).unwrap())..(splits.binary_search(&max).unwrap())
+                {
+                    values[idx].push((*mmin, *mmax, *mmmin, *mmmax, *val));
+                }
+            }
+            let values = values.into_iter().map(|v| Range2D::construct(&v)).collect();
+            Range3D { splits, values }
+        }
+
+        // sum up counts of 1D ranges times range widths
+        fn count(&self) -> u64 {
+            if self.splits.len() > 0 {
+                let mut prev = self.splits[0];
+                let mut acc = 0;
+                for i in 1..self.splits.len() {
+                    acc += (self.splits[i] - prev) as u64 * self.values[i - 1].count();
+                    prev = self.splits[i];
+                }
+                acc as u64
+            } else {
+                0
+            }
+        }
+    }
+
+    // construct a range tree over the cuboids
+    let tree = Range3D::construct(&steps);
+
+    // display the result
+    println!("{}, {}", small_lit, tree.count());
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -1986,5 +2190,6 @@ fn main() {
     // day_18();
     // day_19();
     // day_20();
-    day_21();
+    // day_21();
+    day_22();
 }

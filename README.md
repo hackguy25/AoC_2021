@@ -123,3 +123,6 @@ Since I might get new insights or ideas for an old solution later down the road,
   - `it.skip(n)` returns an iterator with elements of `it` from `n` onward
   - `it.take(n)` returns next `n` values from `it` (consuming it in the process)
   - `it.unzip()` collects tuples into a tuple of containers
+
+### Day 22
+- Generic `impl` for generic `struct`: `struct Foo<T> { ... }; impl<T> Foo<T> { ... }`
