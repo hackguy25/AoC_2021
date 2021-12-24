@@ -5,10 +5,10 @@
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
+use std::io::{self, Write};
 use std::iter::{once, repeat};
 use std::rc::Rc;
 use std::vec::Vec;
-use std::io::{self, Write};
 
 fn day_01() {
     // read and parse data
@@ -3009,6 +3009,151 @@ fn day_23() {
     println!("{}", costs[&target]);
 }
 
+fn day_24() {
+    // read and parse the data
+    let data = fs::read_to_string("inputs/day_24.in").expect("aaa");
+    let monad = data
+        .lines()
+        .map(|l| l.trim().split(" ").collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    // ALU simulator
+    fn simulate<T: Iterator<Item = i64>>(instructions: &Vec<Vec<&str>>, mut input: T) -> [i64; 4] {
+        let mut ret = [0; 4];
+        let reg_idx = |x: &str| -> (bool, i64) {
+            match x {
+                "w" => (true, 0),
+                "x" => (true, 1),
+                "y" => (true, 2),
+                "z" => (true, 3),
+                _ => (false, x.parse::<i64>().unwrap()),
+            }
+        };
+        for inst in instructions {
+            match inst[0] {
+                "inp" => {
+                    if let (true, reg) = reg_idx(inst[1]) {
+                        ret[reg as usize] = input.next().unwrap();
+                    }
+                },
+                "add" => {
+                    if let (true, reg) = reg_idx(inst[1]) {
+                        let (direct, val) = reg_idx(inst[2]);
+                        if direct {
+                            ret[reg as usize] += ret[val as usize];
+                        } else {
+                            ret[reg as usize] += val;
+                        }
+                    }
+                },
+                "mul" => {
+                    if let (true, reg) = reg_idx(inst[1]) {
+                        let (direct, val) = reg_idx(inst[2]);
+                        if direct {
+                            ret[reg as usize] *= ret[val as usize];
+                        } else {
+                            ret[reg as usize] *= val;
+                        }
+                    }
+                },
+                "div" => {
+                    if let (true, reg) = reg_idx(inst[1]) {
+                        let (direct, val) = reg_idx(inst[2]);
+                        if direct {
+                            ret[reg as usize] /= ret[val as usize];
+                        } else {
+                            ret[reg as usize] /= val;
+                        }
+                    }
+                },
+                "mod" => {
+                    if let (true, reg) = reg_idx(inst[1]) {
+                        let (direct, val) = reg_idx(inst[2]);
+                        if direct {
+                            ret[reg as usize] %= ret[val as usize];
+                        } else {
+                            ret[reg as usize] %= val;
+                        }
+                    }
+                },
+                "eql" => {
+                    if let (true, reg) = reg_idx(inst[1]) {
+                        let (direct, val) = reg_idx(inst[2]);
+                        if direct {
+                            (ret[reg as usize] == ret[val as usize]) as i64;
+                        } else {
+                            (ret[reg as usize] == val) as i64;
+                        }
+                    }
+                },
+                _ => ()
+            }
+        }
+        ret
+    }
+
+    // let negate = vec![vec!["inp", "x"], vec!["mul", "x", "-1"]];
+    // println!("{:?}", simulate(&negate, once(13)));
+
+    // let binary = vec![
+    //     vec!["inp", "w"],
+    //     vec!["add", "z", "w"],
+    //     vec!["mod", "z", "2"],
+    //     vec!["div", "w", "2"],
+    //     vec!["add", "y", "w"],
+    //     vec!["mod", "y", "2"],
+    //     vec!["div", "w", "2"],
+    //     vec!["add", "x", "w"],
+    //     vec!["mod", "x", "2"],
+    //     vec!["div", "w", "2"],
+    //     vec!["mod", "w", "2"]
+    // ];
+    // println!("{:?}", simulate(&binary, once(13)));
+
+    let digits = || (0..9).map(|x| 9 - x);
+    let mut largest_model_num = -1_i64;
+    let mut input = [9_i64; 14];
+    'outer: for d7 in digits() {
+        input[6] = d7;
+        for d6 in digits() {
+            input[7] = d6;
+            for d5 in digits() {
+                input[8] = d5;
+                for d4 in digits() {
+                    input[9] = d4;
+                    for d3 in digits() {
+                        input[10] = d3;
+                        for d2 in digits() {
+                            input[11] = d2;
+                            for d1 in digits() {
+                                input[12] = d1;
+                                for d0 in digits() {
+                                    input[13] = d0;
+                                    let ret = simulate(&monad, input.clone().into_iter());
+                                    if ret[3] == 0 {
+                                        largest_model_num = 0;
+                                        for i in 0..14 {
+                                            largest_model_num *= 10;
+                                            largest_model_num += ret[i];
+                                            break 'outer;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if largest_model_num == -1 {
+        panic!("Not found");
+    }
+
+    // display the result
+    println!("{}, {}", largest_model_num, 0);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -3032,5 +3177,6 @@ fn main() {
     // day_20();
     // day_21();
     // day_22();
-    day_23();
+    // day_23();
+    day_24();
 }

@@ -126,3 +126,7 @@ Since I might get new insights or ideas for an old solution later down the road,
 
 ### Day 22
 - Generic `impl` for generic `struct`: `struct Foo<T> { ... }; impl<T> Foo<T> { ... }`
+
+### Day 23
+- Tuple-like structs: `struct Foo(i32, i32, i32);`
+- Flush `stdout`: `use std::io::{self, Write}; io::stdout().flush().unwrap(); `
