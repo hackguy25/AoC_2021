@@ -3010,9 +3010,10 @@ fn day_23() {
 }
 
 fn day_24() {
+    // The following was pretty much unused:
     // read and parse the data
     let data = fs::read_to_string("inputs/day_24.in").expect("aaa");
-    let monad = data
+    let _monad = data
         .lines()
         .map(|l| l.trim().split(" ").collect::<Vec<_>>())
         .collect::<Vec<_>>();
@@ -3080,9 +3081,9 @@ fn day_24() {
                     if let (true, reg) = reg_idx(inst[1]) {
                         let (direct, val) = reg_idx(inst[2]);
                         if direct {
-                            (ret[reg as usize] == ret[val as usize]) as i64;
+                            ret[reg as usize] = (ret[reg as usize] == ret[val as usize]) as i64;
                         } else {
-                            (ret[reg as usize] == val) as i64;
+                            ret[reg as usize] = (ret[reg as usize] == val) as i64;
                         }
                     }
                 },
@@ -3110,48 +3111,125 @@ fn day_24() {
     // ];
     // println!("{:?}", simulate(&binary, once(13)));
 
-    let digits = || (0..9).map(|x| 9 - x);
-    let mut largest_model_num = -1_i64;
-    let mut input = [9_i64; 14];
-    'outer: for d7 in digits() {
-        input[6] = d7;
-        for d6 in digits() {
-            input[7] = d6;
-            for d5 in digits() {
-                input[8] = d5;
-                for d4 in digits() {
-                    input[9] = d4;
-                    for d3 in digits() {
-                        input[10] = d3;
-                        for d2 in digits() {
-                            input[11] = d2;
-                            for d1 in digits() {
-                                input[12] = d1;
-                                for d0 in digits() {
-                                    input[13] = d0;
-                                    let ret = simulate(&monad, input.clone().into_iter());
-                                    if ret[3] == 0 {
-                                        largest_model_num = 0;
-                                        for i in 0..14 {
-                                            largest_model_num *= 10;
-                                            largest_model_num += ret[i];
-                                            break 'outer;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    if largest_model_num == -1 {
-        panic!("Not found");
-    }
+    let _digits = || (0..9).map(|x| 9 - x);
+    // let mut largest_model_num = -1_i64;
+    // let mut input = [9_i64; 14];
+    // 'outer: for d7 in digits() {
+    //     input[6] = d7;
+    //     for d6 in digits() {
+    //         input[7] = d6;
+    //         for d5 in digits() {
+    //             input[8] = d5;
+    //             for d4 in digits() {
+    //                 input[9] = d4;
+    //                 for d3 in digits() {
+    //                     input[10] = d3;
+    //                     for d2 in digits() {
+    //                         input[11] = d2;
+    //                         for d1 in digits() {
+    //                             input[12] = d1;
+    //                             for d0 in digits() {
+    //                                 input[13] = d0;
+    //                                 let ret = simulate(&monad, input.clone().into_iter());
+    //                                 if ret[3] == 0 {
+    //                                     largest_model_num = 0;
+    //                                     for i in 0..14 {
+    //                                         largest_model_num *= 10;
+    //                                         largest_model_num += ret[i];
+    //                                         break 'outer;
+    //                                     }
+    //                                 }
+    //                             }
+    //                         }
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+    // if largest_model_num == -1 {
+    //     panic!("Not found");
+    // }
 
-    // display the result
-    println!("{}, {}", largest_model_num, 0);
+    // let input = [2, 3, 4, 5, 6, 7, 8, 9, 8, 7, 6, 5, 4, 3, 2];
+    // let _ = simulate(&monad, input.into_iter());
+
+    // At this point I realized I'd have to find a more optimal approach.
+    // I studied the MONAD and found that it's composed of 14 almost identical blocks
+    //   (one for each input).
+    // I also noticed that the z register acs like a stack of numbers from 0 to 25.
+    // Therefore the MONAD acts like this:
+
+    // x = peek()
+    // if (x + 11) != char { push(14 + char) }
+    // x = peek()
+    // if (x + 13) != char { push(8 + char) }
+    // x = peek()
+    // if (x + 11) != char { push(4 + char) }
+    // x = peek()
+    // if (x + 10) != char { push(10 + char) }
+    // x = pop()
+    // if (x - 3) != char { push(14 + char) }
+    // x = pop()
+    // if (x - 4) != char { push(10 + char) }
+    // x = peek()
+    // if (x + 12) != char { push(4 + char) }
+    // x = pop()
+    // if (x - 8) != char { push(14 + char) }
+    // x = pop()
+    // if (x - 3) != char { push(1 + char) }
+    // x = pop()
+    // if (x - 12) != char { push(6 + char) }
+    // x = peek()
+    // if (x + 14) != char { push(char) }
+    // x = pop()
+    // if (x - 6) != char { push(9 + char) }
+    // x = peek()
+    // if (x + 11) != char { push(13 + char) }
+    // x = pop()
+    // if (x - 12) != char { push(12 + char) }
+
+    // In order to make the value of z be 0, we must make sure the stack is empty.
+    // I noticed that there are 7 pops and 14 pushes.
+    // But some pushes can be avoided, those whose conditional can be achieved.
+    // Since x is always between 0 and 25, and char is between 1 and 9, this immediatelly
+    //   rules out the conditionals with positive offsets over 9.
+    // With this the MONAD becomes:
+
+    // push(c0+14)
+    // push(c1+8)
+    // push(c2+4)
+    // push(c3+4)
+    // x = c3+10
+    // if (c3+7) != c4 { push(c4+14) }
+    // x = c2+4
+    // if (c2) != c5 { push(c5+10) }
+    // push(c6+4)
+    // x = c6+4
+    // if (c6-4) != c7 { push(c7+14) }
+    // x = c1+8
+    // if (c1+5) != c8 { push(c8+1) }
+    // x = c0+14
+    // if (c0+2) != c9 { push(c9+6) }
+    // push(c10)
+    // x = c10
+    // if (c10-6) != c11 { push(c11+9) }
+    // push(c12+13)
+    // x = c12+13
+    // if (c12+1) != c13 { push(c13+12) }
+
+    // To achieve empty stack, we must satisfy 7 equations:
+
+    // c4 = c3+7
+    // c5 = c2
+    // c7 = c6-4
+    // c8 = c1+5
+    // c9 = c0+2
+    // c11 = c10-6
+    // c13 = c12+1
+
+    // Now we just insert values from 1 to 9 to get largest and smallest valid model number:
+    println!("{}, {}", 74929995999389_i64, 11118151637112_i64);
 }
 
 fn main() {
