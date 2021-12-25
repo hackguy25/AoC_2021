@@ -3036,7 +3036,7 @@ fn day_24() {
                     if let (true, reg) = reg_idx(inst[1]) {
                         ret[reg as usize] = input.next().unwrap();
                     }
-                },
+                }
                 "add" => {
                     if let (true, reg) = reg_idx(inst[1]) {
                         let (direct, val) = reg_idx(inst[2]);
@@ -3046,7 +3046,7 @@ fn day_24() {
                             ret[reg as usize] += val;
                         }
                     }
-                },
+                }
                 "mul" => {
                     if let (true, reg) = reg_idx(inst[1]) {
                         let (direct, val) = reg_idx(inst[2]);
@@ -3056,7 +3056,7 @@ fn day_24() {
                             ret[reg as usize] *= val;
                         }
                     }
-                },
+                }
                 "div" => {
                     if let (true, reg) = reg_idx(inst[1]) {
                         let (direct, val) = reg_idx(inst[2]);
@@ -3066,7 +3066,7 @@ fn day_24() {
                             ret[reg as usize] /= val;
                         }
                     }
-                },
+                }
                 "mod" => {
                     if let (true, reg) = reg_idx(inst[1]) {
                         let (direct, val) = reg_idx(inst[2]);
@@ -3076,7 +3076,7 @@ fn day_24() {
                             ret[reg as usize] %= val;
                         }
                     }
-                },
+                }
                 "eql" => {
                     if let (true, reg) = reg_idx(inst[1]) {
                         let (direct, val) = reg_idx(inst[2]);
@@ -3086,8 +3086,8 @@ fn day_24() {
                             ret[reg as usize] = (ret[reg as usize] == val) as i64;
                         }
                     }
-                },
-                _ => ()
+                }
+                _ => (),
             }
         }
         ret
@@ -3232,6 +3232,91 @@ fn day_24() {
     println!("{}, {}", 74929995999389_i64, 11118151637112_i64);
 }
 
+fn day_25() {
+    // read and parse the data
+    let data = fs::read_to_string("inputs/day_25.in").expect("aaa");
+    #[derive(Copy, Clone, PartialEq)]
+    enum Cucumber {
+        Empty,
+        East,
+        South,
+    }
+    use Cucumber::*;
+    let starting_field = data
+        .lines()
+        .map(|l| {
+            l.chars()
+                .map(|c| match c {
+                    '>' => East,
+                    'v' => South,
+                    _ => Empty,
+                })
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
+    // apply movement until no cucumber moves
+    let mut moves = 1;
+    let mut prev_field = starting_field.clone();
+    loop {
+        let mut moved = 0;
+        let mut new_field = vec![vec![Empty; prev_field[0].len()]; prev_field.len()];
+
+        // move east
+        let l_i = prev_field.len();
+        for i in 0..l_i {
+            let l_j = prev_field[i].len();
+            for j in 0..l_j {
+                if prev_field[i][j] == East {
+                    if prev_field[i][(j + 1) % l_j] == Empty {
+                        new_field[i][(j + 1) % l_j] = East;
+                        moved += 1;
+                    } else {
+                        new_field[i][j] = East;
+                    }
+                }
+                if prev_field[i][j] == South {
+                    new_field[i][j] = South;
+                }
+            }
+        }
+
+        prev_field = new_field;
+        let mut new_field = vec![vec![Empty; prev_field[0].len()]; prev_field.len()];
+
+        // move south
+        let l_i = prev_field.len();
+        for i in 0..l_i {
+            let l_j = prev_field[i].len();
+            for j in 0..l_j {
+                if prev_field[i][j] == South {
+                    if prev_field[(i + 1) % l_i][j] == Empty {
+                        new_field[(i + 1) % l_i][j] = South;
+                        moved += 1;
+                    } else {
+                        new_field[i][j] = South;
+                    }
+                }
+                if prev_field[i][j] == East {
+                    new_field[i][j] = East;
+                }
+            }
+        }
+
+        // check if any cucumber moved
+        if moved == 0 {
+            break;
+        }
+
+        // cleanup
+        prev_field = new_field;
+        moves += 1;
+    }
+
+    // display the result
+    println!("{}, {}", moves, 0);
+}
+
 fn main() {
     // day_01();
     // day_02();
@@ -3256,5 +3341,6 @@ fn main() {
     // day_21();
     // day_22();
     // day_23();
-    day_24();
+    // day_24();
+    day_25()
 }

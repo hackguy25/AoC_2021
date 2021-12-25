@@ -129,4 +129,7 @@ Since I might get new insights or ideas for an old solution later down the road,
 
 ### Day 23
 - Tuple-like structs: `struct Foo(i32, i32, i32);`
-- Flush `stdout`: `use std::io::{self, Write}; io::stdout().flush().unwrap(); `
+- Flush `stdout`: `use std::io::{self, Write}; io::stdout().flush().unwrap();`
+
+### Day 24
+- Sometimes it's worth trying solving the problem by hand.
