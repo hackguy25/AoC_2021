@@ -2,8 +2,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-use std::cmp::{max, min};
-use std::collections::{HashMap, HashSet, VecDeque};
+use std::cmp::{max, min, Ordering};
+use std::collections::{HashMap, HashSet, VecDeque, BinaryHeap};
 use std::fs;
 use std::io::{self, Write};
 use std::iter::{once, repeat};
@@ -2643,25 +2643,44 @@ fn day_23() {
     //      15    16    17    18
     //      19    20    21    22
 
-    #[derive(Hash, Eq, PartialEq, Copy, Clone, Debug)]
-    struct StateExt([Amphipod; 23]);
+    #[derive(Eq, Copy, Clone, Debug)]
+    struct StateExt {
+        state: [Amphipod; 23],
+        cost: usize,
+    }
     impl StateExt {
-        fn swap(&self, a: usize, b: usize) -> StateExt {
+        fn swap(&self, a: usize, b: usize, c: usize) -> StateExt {
             let mut ret = self.clone();
             ret[a] = self[b];
             ret[b] = self[a];
+            ret.cost = c;
             ret
         }
     }
     impl std::ops::Index<usize> for StateExt {
         type Output = Amphipod;
         fn index(&self, i: usize) -> &Amphipod {
-            &self.0[i]
+            &self.state[i]
         }
     }
     impl std::ops::IndexMut<usize> for StateExt {
         fn index_mut(&mut self, i: usize) -> &mut Amphipod {
-            &mut self.0[i]
+            &mut self.state[i]
+        }
+    }
+    impl PartialEq for StateExt {
+        fn eq(&self, other: &Self) -> bool {
+            self.cost == other.cost
+        }
+    }
+    impl PartialOrd for StateExt {
+        fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+            other.cost.partial_cmp(&self.cost)
+        }
+    }
+    impl Ord for StateExt {
+        fn cmp(&self, other: &Self) -> Ordering {
+            other.cost.cmp(&self.cost)
         }
     }
 
@@ -2673,144 +2692,164 @@ fn day_23() {
         start[15 + i] = Amphipod::from_char(rooms[2][i]);
         start[19 + i] = Amphipod::from_char(rooms[3][i]);
     }
-    let start = StateExt(start);
 
-    // all known configurations and lowest known energies to get to them from start
+    // costs
     let mut costs = HashMap::new();
-    costs.insert(start, 0_usize);
 
-    // queue of states to consider
-    let mut queue = VecDeque::new();
-    queue.push_back(start);
+    // binary heap of states to consider
+    let mut heap = BinaryHeap::new();
+    let start = StateExt {
+        state: start,
+        cost: 0,
+    };
+    heap.push(start);
+    let mut prev_cost = 0;
 
     macro_rules! check_cost {
-        ($state: expr, $cost: expr) => {{
-            let state = $state;
-            let cost = $cost;
-            if !costs.contains_key(&state) || costs[&state] > cost {
-                costs.insert(state, cost);
-                queue.push_back(state);
+        ($state: expr, $a: expr, $b: expr, $c: expr) => {{
+            let cost = $c;
+            let state = $state.swap($a, $b, cost);
+            if !costs.contains_key(&state.state) || costs[&state.state] > cost {
+                heap.push(state);
             }
         }};
     }
 
-    while let Some(st) = queue.pop_front() {
+    while let Some(st) = heap.pop() {
         // consider all possible moves
+        let cost = costs.get(&st.state);
+        if let Some(cost) = cost {
+            if *cost <= st.cost {
+                continue
+            } else {
+                costs.insert(st.state.clone(), st.cost);
+            }
+        } else {
+            costs.insert(st.state.clone(), st.cost);
+        }
+        let cost = st.cost;
+        if cost > prev_cost + 1000 {
+            prev_cost = cost;
+            println!("{}", cost);
+        }
+        if cost > 50000 {
+            break;
+        }
+
         // move an amphipod into an empty space
-        let cost = costs[&st];
         if st[7] != Amphipod::None {
             if st[1] == Amphipod::None {
                 if st[0] == Amphipod::None {
-                    check_cost!(st.swap(0, 7), cost + 3 * st[7].cost());
+                    check_cost!(st, 0, 7, cost + 3 * st[7].cost());
                 }
-                check_cost!(st.swap(1, 7), cost + 2 * st[7].cost());
+                check_cost!(st, 1, 7, cost + 2 * st[7].cost());
             }
             if st[2] == Amphipod::None {
-                check_cost!(st.swap(2, 7), cost + 2 * st[7].cost());
+                check_cost!(st, 2, 7, cost + 2 * st[7].cost());
                 if st[3] == Amphipod::None {
-                    check_cost!(st.swap(3, 7), cost + 4 * st[7].cost());
+                    check_cost!(st, 3, 7, cost + 4 * st[7].cost());
                     if st[4] == Amphipod::None {
-                        check_cost!(st.swap(4, 7), cost + 6 * st[7].cost());
+                        check_cost!(st, 4, 7, cost + 6 * st[7].cost());
                         if st[5] == Amphipod::None {
-                            check_cost!(st.swap(5, 7), cost + 8 * st[7].cost());
+                            check_cost!(st, 5, 7, cost + 8 * st[7].cost());
                             if st[6] == Amphipod::None {
-                                check_cost!(st.swap(6, 7), cost + 9 * st[7].cost());
+                                check_cost!(st, 6, 7, cost + 9 * st[7].cost());
                             }
                         }
                     }
                 }
             }
             if st[11] == Amphipod::None {
-                check_cost!(st.swap(11, 7), cost + st[7].cost());
+                check_cost!(st, 11, 7, cost + st[7].cost());
                 if st[15] == Amphipod::None {
-                    check_cost!(st.swap(15, 7), cost + 2 * st[7].cost());
+                    check_cost!(st, 15, 7, cost + 2 * st[7].cost());
                     if st[19] == Amphipod::None {
-                        check_cost!(st.swap(19, 7), cost + 3 * st[7].cost());
+                        check_cost!(st, 19, 7, cost + 3 * st[7].cost());
                     }
                 }
             }
         } else if st[11] != Amphipod::None {
-            check_cost!(st.swap(7, 11), cost + st[11].cost());
+            check_cost!(st, 7, 11, cost + st[11].cost());
         } else if st[15] != Amphipod::None {
-            check_cost!(st.swap(7, 15), cost + 2 * st[15].cost());
+            check_cost!(st, 7, 15, cost + 2 * st[15].cost());
         } else if st[19] != Amphipod::None {
-            check_cost!(st.swap(7, 19), cost + 3 * st[19].cost());
+            check_cost!(st, 7, 19, cost + 3 * st[19].cost());
         }
         if st[8] != Amphipod::None {
             if st[2] == Amphipod::None {
                 if st[1] == Amphipod::None {
                     if st[0] == Amphipod::None {
-                        check_cost!(st.swap(0, 8), cost + 5 * st[8].cost());
+                        check_cost!(st, 0, 8, cost + 5 * st[8].cost());
                     }
-                    check_cost!(st.swap(1, 8), cost + 4 * st[8].cost());
+                    check_cost!(st, 1, 8, cost + 4 * st[8].cost());
                 }
-                check_cost!(st.swap(2, 8), cost + 2 * st[8].cost());
+                check_cost!(st, 2, 8, cost + 2 * st[8].cost());
             }
             if st[3] == Amphipod::None {
-                check_cost!(st.swap(3, 8), cost + 2 * st[8].cost());
+                check_cost!(st, 3, 8, cost + 2 * st[8].cost());
                 if st[4] == Amphipod::None {
-                    check_cost!(st.swap(4, 8), cost + 4 * st[8].cost());
+                    check_cost!(st, 4, 8, cost + 4 * st[8].cost());
                     if st[5] == Amphipod::None {
-                        check_cost!(st.swap(5, 8), cost + 6 * st[8].cost());
+                        check_cost!(st, 5, 8, cost + 6 * st[8].cost());
                         if st[6] == Amphipod::None {
-                            check_cost!(st.swap(6, 8), cost + 7 * st[8].cost());
+                            check_cost!(st, 6, 8, cost + 7 * st[8].cost());
                         }
                     }
                 }
             }
             if st[12] == Amphipod::None {
-                check_cost!(st.swap(12, 8), cost + st[8].cost());
+                check_cost!(st, 12, 8, cost + st[8].cost());
                 if st[16] == Amphipod::None {
-                    check_cost!(st.swap(16, 8), cost + 2 * st[8].cost());
+                    check_cost!(st, 16, 8, cost + 2 * st[8].cost());
                     if st[20] == Amphipod::None {
-                        check_cost!(st.swap(20, 8), cost + 3 * st[8].cost());
+                        check_cost!(st, 20, 8, cost + 3 * st[8].cost());
                     }
                 }
             }
         } else if st[12] != Amphipod::None {
-            check_cost!(st.swap(8, 12), cost + st[12].cost());
+            check_cost!(st, 8, 12, cost + st[12].cost());
         } else if st[16] != Amphipod::None {
-            check_cost!(st.swap(8, 16), cost + 2 * st[16].cost());
+            check_cost!(st, 8, 16, cost + 2 * st[16].cost());
         } else if st[20] != Amphipod::None {
-            check_cost!(st.swap(8, 20), cost + 3 * st[20].cost());
+            check_cost!(st, 8, 20, cost + 3 * st[20].cost());
         }
         if st[9] != Amphipod::None {
             if st[3] == Amphipod::None {
                 if st[2] == Amphipod::None {
                     if st[1] == Amphipod::None {
                         if st[0] == Amphipod::None {
-                            check_cost!(st.swap(0, 9), cost + 7 * st[9].cost());
+                            check_cost!(st, 0, 9, cost + 7 * st[9].cost());
                         }
-                        check_cost!(st.swap(1, 9), cost + 6 * st[9].cost());
+                        check_cost!(st, 1, 9, cost + 6 * st[9].cost());
                     }
-                    check_cost!(st.swap(2, 9), cost + 4 * st[9].cost());
+                    check_cost!(st, 2, 9, cost + 4 * st[9].cost());
                 }
-                check_cost!(st.swap(3, 9), cost + 2 * st[9].cost());
+                check_cost!(st, 3, 9, cost + 2 * st[9].cost());
             }
             if st[4] == Amphipod::None {
-                check_cost!(st.swap(4, 9), cost + 2 * st[9].cost());
+                check_cost!(st, 4, 9, cost + 2 * st[9].cost());
                 if st[5] == Amphipod::None {
-                    check_cost!(st.swap(5, 9), cost + 4 * st[9].cost());
+                    check_cost!(st, 5, 9, cost + 4 * st[9].cost());
                     if st[6] == Amphipod::None {
-                        check_cost!(st.swap(6, 9), cost + 5 * st[9].cost());
+                        check_cost!(st, 6, 9, cost + 5 * st[9].cost());
                     }
                 }
             }
             if st[13] == Amphipod::None {
-                check_cost!(st.swap(13, 9), cost + st[9].cost());
+                check_cost!(st, 13, 9, cost + st[9].cost());
                 if st[17] == Amphipod::None {
-                    check_cost!(st.swap(17, 9), cost + 2 * st[9].cost());
+                    check_cost!(st, 17, 9, cost + 2 * st[9].cost());
                     if st[21] == Amphipod::None {
-                        check_cost!(st.swap(21, 9), cost + 3 * st[9].cost());
+                        check_cost!(st, 21, 9, cost + 3 * st[9].cost());
                     }
                 }
             }
         } else if st[13] != Amphipod::None {
-            check_cost!(st.swap(9, 13), cost + st[13].cost());
+            check_cost!(st, 9, 13, cost + st[13].cost());
         } else if st[17] != Amphipod::None {
-            check_cost!(st.swap(9, 17), cost + 2 * st[17].cost());
+            check_cost!(st, 9, 17, cost + 2 * st[17].cost());
         } else if st[21] != Amphipod::None {
-            check_cost!(st.swap(9, 21), cost + 3 * st[21].cost());
+            check_cost!(st, 9, 21, cost + 3 * st[21].cost());
         }
         if st[10] != Amphipod::None {
             if st[4] == Amphipod::None {
@@ -2818,179 +2857,179 @@ fn day_23() {
                     if st[2] == Amphipod::None {
                         if st[1] == Amphipod::None {
                             if st[0] == Amphipod::None {
-                                check_cost!(st.swap(0, 10), cost + 9 * st[10].cost());
+                                check_cost!(st, 0, 10, cost + 9 * st[10].cost());
                             }
-                            check_cost!(st.swap(1, 10), cost + 8 * st[10].cost());
+                            check_cost!(st, 1, 10, cost + 8 * st[10].cost());
                         }
-                        check_cost!(st.swap(2, 10), cost + 6 * st[10].cost());
+                        check_cost!(st, 2, 10, cost + 6 * st[10].cost());
                     }
-                    check_cost!(st.swap(3, 10), cost + 4 * st[10].cost());
+                    check_cost!(st, 3, 10, cost + 4 * st[10].cost());
                 }
-                check_cost!(st.swap(4, 10), cost + 2 * st[10].cost());
+                check_cost!(st, 4, 10, cost + 2 * st[10].cost());
             }
             if st[5] == Amphipod::None {
-                check_cost!(st.swap(5, 10), cost + 2 * st[10].cost());
+                check_cost!(st, 5, 10, cost + 2 * st[10].cost());
                 if st[6] == Amphipod::None {
-                    check_cost!(st.swap(6, 10), cost + 3 * st[10].cost());
+                    check_cost!(st, 6, 10, cost + 3 * st[10].cost());
                 }
             }
             if st[14] == Amphipod::None {
-                check_cost!(st.swap(14, 10), cost + st[10].cost());
+                check_cost!(st, 14, 10, cost + st[10].cost());
                 if st[18] == Amphipod::None {
-                    check_cost!(st.swap(18, 10), cost + 2 * st[10].cost());
+                    check_cost!(st, 18, 10, cost + 2 * st[10].cost());
                     if st[22] == Amphipod::None {
-                        check_cost!(st.swap(22, 10), cost + 3 * st[10].cost());
+                        check_cost!(st, 22, 10, cost + 3 * st[10].cost());
                     }
                 }
             }
         } else if st[14] != Amphipod::None {
-            check_cost!(st.swap(10, 14), cost + st[14].cost());
+            check_cost!(st, 10, 14, cost + st[14].cost());
         } else if st[18] != Amphipod::None {
-            check_cost!(st.swap(10, 18), cost + 2 * st[18].cost());
+            check_cost!(st, 10, 18, cost + 2 * st[18].cost());
         } else if st[22] != Amphipod::None {
-            check_cost!(st.swap(10, 22), cost + 3 * st[22].cost());
+            check_cost!(st, 10, 22, cost + 3 * st[22].cost());
         }
 
         // move an amphipod into the destination room
         use Amphipod::{None as AN, A as AA, B as AB, C as AC, D as AD};
         if st[0] == AA {
             if st[1] == AN && st[7] == AN {
-                check_cost!(st.swap(0, 7), cost + 3);
+                check_cost!(st, 0, 7, cost + 3);
             }
         }
         if st[0] == AB {
             if st[1] == AN && st[2] == AN && st[8] == AN {
-                check_cost!(st.swap(0, 8), cost + 50);
+                check_cost!(st, 0, 8, cost + 50);
             }
         }
         if st[0] == AC {
             if st[1] == AN && st[2] == AN && st[3] == AN && st[9] == AN {
-                check_cost!(st.swap(0, 9), cost + 700);
+                check_cost!(st, 0, 9, cost + 700);
             }
         }
         if st[0] == AD {
             if st[1] == AN && st[2] == AN && st[3] == AN && st[4] == AN && st[10] == AN {
-                check_cost!(st.swap(0, 10), cost + 9000);
+                check_cost!(st, 0, 10, cost + 9000);
             }
         }
         if st[1] == AA {
             if st[7] == AN {
-                check_cost!(st.swap(1, 7), cost + 2);
+                check_cost!(st, 1, 7, cost + 2);
             }
         }
         if st[1] == AB {
             if st[2] == AN && st[8] == AN {
-                check_cost!(st.swap(1, 8), cost + 40);
+                check_cost!(st, 1, 8, cost + 40);
             }
         }
         if st[1] == AC {
             if st[2] == AN && st[3] == AN && st[9] == AN {
-                check_cost!(st.swap(1, 9), cost + 600);
+                check_cost!(st, 1, 9, cost + 600);
             }
         }
         if st[1] == AD {
             if st[2] == AN && st[3] == AN && st[4] == AN && st[10] == AN {
-                check_cost!(st.swap(1, 10), cost + 8000);
+                check_cost!(st, 1, 10, cost + 8000);
             }
         }
         if st[2] == AA {
             if st[7] == AN {
-                check_cost!(st.swap(2, 7), cost + 2);
+                check_cost!(st, 2, 7, cost + 2);
             }
         }
         if st[2] == AB {
             if st[8] == AN {
-                check_cost!(st.swap(2, 8), cost + 20);
+                check_cost!(st, 2, 8, cost + 20);
             }
         }
         if st[2] == AC {
             if st[3] == AN && st[9] == AN {
-                check_cost!(st.swap(2, 9), cost + 400);
+                check_cost!(st, 2, 9, cost + 400);
             }
         }
         if st[2] == AD {
             if st[3] == AN && st[4] == AN && st[10] == AN {
-                check_cost!(st.swap(2, 10), cost + 6000);
+                check_cost!(st, 2, 10, cost + 6000);
             }
         }
         if st[3] == AA {
             if st[2] == AN && st[7] == AN {
-                check_cost!(st.swap(3, 7), cost + 4);
+                check_cost!(st, 3, 7, cost + 4);
             }
         }
         if st[3] == AB {
             if st[8] == AN {
-                check_cost!(st.swap(3, 8), cost + 20);
+                check_cost!(st, 3, 8, cost + 20);
             }
         }
         if st[3] == AC {
             if st[9] == AN {
-                check_cost!(st.swap(3, 9), cost + 200);
+                check_cost!(st, 3, 9, cost + 200);
             }
         }
         if st[3] == AD {
             if st[4] == AN && st[10] == AN {
-                check_cost!(st.swap(3, 10), cost + 4000);
+                check_cost!(st, 3, 10, cost + 4000);
             }
         }
         if st[4] == AA {
             if st[3] == AN && st[2] == AN && st[7] == AN {
-                check_cost!(st.swap(4, 7), cost + 6);
+                check_cost!(st, 4, 7, cost + 6);
             }
         }
         if st[4] == AB {
             if st[3] == AN && st[8] == AN {
-                check_cost!(st.swap(4, 8), cost + 40);
+                check_cost!(st, 4, 8, cost + 40);
             }
         }
         if st[4] == AC {
             if st[9] == AN {
-                check_cost!(st.swap(4, 9), cost + 200);
+                check_cost!(st, 4, 9, cost + 200);
             }
         }
         if st[4] == AD {
             if st[10] == AN {
-                check_cost!(st.swap(4, 10), cost + 2000);
+                check_cost!(st, 4, 10, cost + 2000);
             }
         }
         if st[5] == AA {
             if st[4] == AN && st[3] == AN && st[2] == AN && st[7] == AN {
-                check_cost!(st.swap(5, 7), cost + 8);
+                check_cost!(st, 5, 7, cost + 8);
             }
         }
         if st[5] == AB {
             if st[4] == AN && st[3] == AN && st[8] == AN {
-                check_cost!(st.swap(5, 8), cost + 60);
+                check_cost!(st, 5, 8, cost + 60);
             }
         }
         if st[5] == AC {
             if st[4] == AN && st[9] == AN {
-                check_cost!(st.swap(5, 9), cost + 400);
+                check_cost!(st, 5, 9, cost + 400);
             }
         }
         if st[5] == AD {
             if st[10] == AN {
-                check_cost!(st.swap(5, 10), cost + 2000);
+                check_cost!(st, 5, 10, cost + 2000);
             }
         }
         if st[6] == AA {
             if st[5] == AN && st[4] == AN && st[3] == AN && st[2] == AN && st[7] == AN {
-                check_cost!(st.swap(6, 7), cost + 9);
+                check_cost!(st, 6, 7, cost + 9);
             }
         }
         if st[6] == AB {
             if st[5] == AN && st[4] == AN && st[3] == AN && st[8] == AN {
-                check_cost!(st.swap(6, 8), cost + 70);
+                check_cost!(st, 6, 8, cost + 70);
             }
         }
         if st[6] == AC {
             if st[5] == AN && st[4] == AN && st[9] == AN {
-                check_cost!(st.swap(6, 9), cost + 500);
+                check_cost!(st, 6, 9, cost + 500);
             }
         }
         if st[6] == AD {
             if st[5] == AN && st[10] == AN {
-                check_cost!(st.swap(6, 10), cost + 3000);
+                check_cost!(st, 6, 10, cost + 3000);
             }
         }
     }
@@ -3003,7 +3042,6 @@ fn day_23() {
         target[i + 2] = Amphipod::C;
         target[i + 3] = Amphipod::D;
     }
-    let target = StateExt(target);
 
     // display the result
     println!("{}", costs[&target]);
@@ -3340,7 +3378,7 @@ fn main() {
     // day_20();
     // day_21();
     // day_22();
-    // day_23();
+    day_23();
     // day_24();
-    day_25()
+    // day_25()
 }
