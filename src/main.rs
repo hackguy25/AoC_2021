@@ -2703,7 +2703,6 @@ fn day_23() {
         cost: 0,
     };
     heap.push(start);
-    let mut prev_cost = 0;
 
     macro_rules! check_cost {
         ($state: expr, $a: expr, $b: expr, $c: expr) => {{
@@ -2728,10 +2727,6 @@ fn day_23() {
             costs.insert(st.state.clone(), st.cost);
         }
         let cost = st.cost;
-        if cost > prev_cost + 1000 {
-            prev_cost = cost;
-            println!("{}", cost);
-        }
         if cost > 50000 {
             break;
         }
